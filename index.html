@@ -84,7 +84,7 @@ body.mode3d .classbar .title b, body.mode3d #modal .mhead h2, body.mode3d #build
 .classbar .title b { font-size: 18px; }
 .classbar .title small { display: block; color: var(--muted); }
 .stars { color: var(--gold); letter-spacing: 2px; }
-#chips { display: flex; gap: 6px; padding: 0 10px 6px; overflow-x: auto; scrollbar-width: none; flex: 0 0 auto; }
+#chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 10px 6px; flex: 0 0 auto; }
 #chips::-webkit-scrollbar, #toolbar::-webkit-scrollbar, #minimap::-webkit-scrollbar { display: none; }
 #chips button { min-height: 32px; padding: 3px 10px; font-size: 13px; white-space: nowrap; border-radius: 16px; }
 #chips button.bridge { border-color: var(--gold); }
@@ -96,7 +96,7 @@ body.mode3d .classbar .title b, body.mode3d #modal .mhead h2, body.mode3d #build
 #buildinfo .parts { color: var(--gold); }
 #buildinfo .msg { color: #cbd5e1; }
 #buildinfo .msg.bad { color: #fca5a5; } #buildinfo .msg.good { color: #86efac; }
-#toolbar { display: flex; gap: 6px; padding: 6px 10px; overflow-x: auto; scrollbar-width: none; flex: 0 0 auto; }
+#toolbar { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 10px; flex: 0 0 auto; }
 #toolbar button { white-space: nowrap; min-height: 38px; font-size: 13.5px; }
 #toolbar .sep { width: 1px; background: var(--line); flex: 0 0 1px; margin: 4px 2px; }
 #card { margin: 0 10px 10px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--accent); border-radius: 10px; }
@@ -171,6 +171,8 @@ input[type=search] { font: inherit; background: var(--panel); color: var(--text)
   #build { flex: 0 0 auto; height: 230px; }
   .classbar .title b { font-size: 16px; }
   .classbar button { padding: 6px 9px; }
+  #chips { gap: 4px; } #chips button { min-height: 28px; padding: 2px 8px; font-size: 12px; }
+  #toolbar { gap: 4px; } #toolbar button { min-height: 34px; padding: 4px 8px; font-size: 12.5px; }
 }
 </style>
 </head>
