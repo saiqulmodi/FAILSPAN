@@ -1177,8 +1177,9 @@
     if (S.view3d) load3d().catch(() => {});
     // opening theme: dominoes from Class 1 down to Expert Engineer, each smaller, then the game starts
     window.BWIntro.play({
-      labels: LV.map(lname), title: "🌉 " + t("FAILSPAN"), subtitle: t("The way to your destination"), skipText: t("Skip ▶"),
-      click: (k, n) => tone(260 + k * 45, 0.05, "square", 0.05 * (1 - k / (n + 4))),
+      labels: LV.map(lname), title: t("FAILSPAN"), subtitle: t("Small steps. Bigger every class."),
+      tagline: t("STRUCTURAL MAYHEM") + " · " + t("Build. Stress. Snap."), skipText: t("Skip ▶"),
+      click: (k, n) => tone(880 - k * 42, 0.06 + k * 0.006, "square", 0.03 + 0.06 * k / n),
       freezeAt: new URLSearchParams(location.search).has("introAt") ? +new URLSearchParams(location.search).get("introAt") : null,
       onDone: () => {
         if (S.start < 0) show("start"); else { show("world"); world.focus(LV[unlockedUpTo()].l); }

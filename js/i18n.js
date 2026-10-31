@@ -12,7 +12,7 @@
     "STRUCTURAL MAYHEM": "স্ট্রাকচারাল মেহেম",
     "STRESS": "চাপ", "💥 STRUCTURAL FAILURE": "💥 কাঠামো ভেঙে পড়েছে", "✔ BRIDGE HOLDS": "✔ সেতু টিকে আছে",
     "⚠ FRACTURE IMMINENT": "⚠ ভাঙন আসন্ন", "Low graphics": "হালকা গ্রাফিক্স", "Fewer effects for slow phones": "ধীর ফোনের জন্য কম ইফেক্ট",
-    "Locked": "বন্ধ", "View:": "দৃশ্য:", "Switch to 2D": "2D-তে যাও", "Switch to 3D": "3D-তে যাও",
+    "Locked": "বন্ধ", "Small steps. Bigger every class.": "ছোট ছোট পা, প্রতি ক্লাসে আরও বড়।", "View:": "দৃশ্য:", "Switch to 2D": "2D-তে যাও", "Switch to 3D": "3D-তে যাও",
     "✏️ Build (2D)": "✏️ বানাও (2D)", "🧊 3D view": "🧊 3D দৃশ্য",
     "3D could not start on this device. 2D still works.": "এই ডিভাইসে 3D চালু হলো না। 2D ঠিকই চলবে।",
     "Build. Stress. Snap.": "গড়ো। চাপ দাও। ভাঙো।",
