@@ -1031,8 +1031,16 @@
     const draw = () => {
       const items = cur.pool.slice(page * per, page * per + per);
       $("m-body").innerHTML = items.map((q, k) => { const v = shown(q); return `<div class="bankitem"><div class="bq">${page * per + k + 1}. [${esc(sname(q.s))}] ${esc(v.q)}</div>
-        <ol type="A">${v.o.map((o, i) => `<li class="${i === q.a ? "right" : ""}">${esc(o)}</li>`).join("")}</ol>
-        <div class="be">${esc(t("Answer: {a}", { a: v.o[q.a] }))} · ${esc(v.e)}</div></div>`; }).join("");
+        <ol type="A">${v.o.map((o, i) => `<li data-i="${i}" data-a="${q.a}">${esc(o)}</li>`).join("")}</ol>
+        <div class="be" hidden>${esc(t("Answer: {a}", { a: v.o[q.a] }))} · ${esc(v.e)}</div></div>`; }).join("");
+      // answers stay hidden until an option is tapped: right = green, a wrong pick = red, then the explanation
+      $("m-body").querySelectorAll(".bankitem li").forEach(li => li.onclick = () => {
+        const item = li.closest(".bankitem"); if (item.classList.contains("done")) return;
+        item.classList.add("done");
+        item.querySelectorAll("li").forEach(x => { if (x.dataset.i === x.dataset.a) x.classList.add("right"); });
+        if (li.dataset.i !== li.dataset.a) li.classList.add("wrong");
+        item.querySelector(".be").hidden = false;
+      });
       $("pg").textContent = t("Page {a} of {b}", { a: (page + 1).toLocaleString("en-IN"), b: pages().toLocaleString("en-IN") });
       $("m-body").scrollTop = 0;
     };

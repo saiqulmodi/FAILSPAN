@@ -137,6 +137,9 @@ table.report th { color: var(--accent2); }
 .bankitem .bq { font-weight: 700; white-space: pre-wrap; }
 .bankitem ol { margin: 4px 0; padding-left: 22px; columns: 2; font-size: 13.5px; color: #cbd5e1; }
 .bankitem li::marker { color: #cbd5e1; }
+.bankitem li { cursor: pointer; border-radius: 4px; padding: 1px 4px; }
+.bankitem:not(.done) li:hover { background: rgba(56,189,248,.18); }
+.bankitem li.wrong { color: #fff; background: #b91c1c; }
 .bankitem li.right { color: #0f172a; background: var(--mint); border-radius: 4px; padding: 0 4px; }
 .bankitem .be { font-size: 13px; color: #6ee7b7; }
 .steps li { margin: 6px 0; } .steps li.done { color: var(--good); } .steps li.now { color: var(--gold); font-weight: 700; }
