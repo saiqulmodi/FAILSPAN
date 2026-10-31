@@ -13,7 +13,7 @@
   const TILT = 0.48;           // how flat the ground looks (camera looking down at an angle)
 
   // freezeAt (seconds) holds one moment on screen - used to check frames and make the store thumbnail
-  function play({ labels, title, subtitle, tagline = "", skipText, click, onDone, freezeAt = null }) {
+  function play({ labels, title, subtitle, tagline = "", stressLabel = "STRESS COEFFICIENT", skipText, click, onDone, freezeAt = null }) {
     const box = document.createElement("div");
     box.id = "intro";
     box.innerHTML = `<canvas></canvas><button class="skip">${skipText}</button>`;
@@ -43,7 +43,7 @@
       const nx = doms[k + 1];
       d.rest = nx ? Math.asin(Math.min(0.97, Math.hypot(nx.x - d.x, nx.z - d.z) / d.h)) : 1.5;
     });
-    const lastHit = doms[n - 1].hitAt, boomAt = lastHit + 0.3, titleAt = boomAt + 0.15, endAt = titleAt + 1.9;
+    const lastHit = doms[n - 1].hitAt, boomAt = lastHit + 0.3, titleAt = boomAt + 0.15, endAt = titleAt + 3.0;
 
     // stars
     const stars = Array.from({ length: 90 }, () => [Math.random(), Math.random() * 0.75, Math.random() * 1.4 + 0.3]);
@@ -109,6 +109,93 @@
       rings.push({ x: d.x, z: d.z, r0: d.h * 0.2, r1: d.h * 1.4, age: 0 });
     }
 
+    // ---- the FAILSPAN logo scene (drawn in the logo's own 964 x 412 design units) ----
+    const logoSparks = [];
+    let snapped = false;
+    const ease = q => q * q * (3 - 2 * q), cl = q => Math.max(0, Math.min(1, q));
+    function spaced(text, x, y, gap) {          // letter-spaced text centred on x
+      const ws = [...text].map(c => cx.measureText(c).width), total = ws.reduce((a, b) => a + b, 0) + gap * (ws.length - 1);
+      let px = x - total / 2;
+      [...text].forEach((c, i) => { cx.fillText(c, px + ws[i] / 2, y); px += ws[i] + gap; });
+    }
+    function drawLogo(u) {
+      const k = Math.min(W * 0.94 / 600, H * 0.8 / 300), X = x => W / 2 + (x - 482) * k, Y = y => H * 0.44 + (y - 230) * k;
+      const sag = ease(cl((u - 0.2) / 1.0)), droop = ease(cl((u - 1.2) / 0.5)), txt = cl((u - 1.3) / 0.5);
+      if (u >= 1.2 && !snapped) {
+        snapped = true;
+        if (click && freezeAt === null) click(n + 2, n);
+        for (let i = 0; i < 70; i++) {
+          const a = Math.random() * Math.PI * 2, sp = (60 + Math.random() * 260) * k;
+          logoSparks.push({ x: 488, y: 262, vx: Math.cos(a) * sp / k, vy: (Math.sin(a) * sp - 120 * k) / k, age: 0, life: 0.5 + Math.random() * 0.6 });
+        }
+      }
+      const shake = u > 1.2 && u < 1.55 ? (1 - (u - 1.2) / 0.35) * 7 * k : 0;
+      cx.save();
+      cx.globalAlpha = cl(u / 0.3);
+      cx.fillStyle = "#0a0e1a"; cx.fillRect(0, 0, W, H);
+      // faint grid and the dashed circle
+      cx.strokeStyle = "rgba(51,65,85,.25)"; cx.lineWidth = 1;
+      const gs = 40 * k;
+      for (let x = (W / 2) % gs; x < W; x += gs) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
+      for (let y = (H * 0.44) % gs; y < H; y += gs) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
+      cx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+      cx.setLineDash([6 * k, 6 * k]); cx.strokeStyle = "rgba(59,130,246,.45)"; cx.lineWidth = 1.5 * k;
+      cx.beginPath(); cx.arc(X(482), Y(200), 178 * k, 0, Math.PI * 2); cx.stroke(); cx.setLineDash([]);
+      // ghost of the road line
+      cx.strokeStyle = "rgba(37,99,235,.35)"; cx.lineWidth = 4 * k;
+      cx.beginPath(); cx.moveTo(X(240), Y(212)); cx.lineTo(X(420), Y(212)); cx.lineTo(X(482), Y(212 + 36 * Math.max(sag, droop))); cx.lineTo(X(545), Y(212)); cx.lineTo(X(727), Y(212)); cx.stroke();
+      // towers
+      cx.fillStyle = "#2563eb";
+      for (const [a, b, c, d] of [[226, 258, 262, 215], [706, 738, 765, 703]]) {
+        cx.beginPath(); cx.moveTo(X(a), Y(152)); cx.lineTo(X(b), Y(152)); cx.lineTo(X(c), Y(262)); cx.lineTo(X(d), Y(262)); cx.closePath(); cx.fill();
+      }
+      // main cable (sags a little more under load) and the hangers
+      const cy = 264 + 10 * sag;
+      const cableY = x => { const s = (x - 238) / (727 - 238); return (1 - s) * (1 - s) * 152 + 2 * s * (1 - s) * cy + s * s * 152; };
+      cx.strokeStyle = "rgba(147,197,253,.75)"; cx.lineWidth = 1.5 * k;
+      for (const hx of [305, 370, 433, 532, 593, 655]) { cx.beginPath(); cx.moveTo(X(hx), Y(cableY(hx))); cx.lineTo(X(hx), Y(268)); cx.stroke(); }
+      cx.strokeStyle = "#60a5fa"; cx.lineWidth = 6 * k; cx.lineCap = "round";
+      cx.beginPath(); cx.moveTo(X(238), Y(152)); cx.quadraticCurveTo(X(482), Y(cy), X(727), Y(152)); cx.stroke();
+      // the road deck: one beam that sags, then snaps into two drooping halves
+      cx.strokeStyle = "#f8fafc"; cx.lineWidth = 8 * k; cx.lineCap = "butt";
+      if (u < 1.2) {
+        const mid = 238 + 26 * sag;
+        cx.beginPath(); cx.moveTo(X(240), Y(238)); cx.quadraticCurveTo(X(484), Y(2 * mid - 238), X(727), Y(238)); cx.stroke();
+      } else {
+        const lt = 251 + 71 * droop, rt = 251 + 17 * droop;
+        cx.beginPath(); cx.moveTo(X(240), Y(238)); cx.quadraticCurveTo(X(380), Y(244 + 8 * droop), X(478), Y(lt)); cx.stroke();
+        cx.beginPath(); cx.moveTo(X(500), Y(rt)); cx.quadraticCurveTo(X(610), Y(244), X(727), Y(238)); cx.stroke();
+        // yellow crack
+        cx.strokeStyle = "#fbbf24"; cx.lineWidth = 3.5 * k; cx.lineJoin = "miter";
+        cx.shadowColor = "#f59e0b"; cx.shadowBlur = 12 * k * (1 - droop * 0.6);
+        cx.beginPath(); cx.moveTo(X(478), Y(258)); cx.lineTo(X(489), Y(272)); cx.lineTo(X(470), Y(258 + 54 * droop)); cx.stroke();
+        cx.shadowBlur = 0;
+      }
+      // sparks from the break
+      cx.globalCompositeOperation = "lighter";
+      for (const p of logoSparks) {
+        p.age += 1 / 60; if (p.age > p.life) continue;
+        p.vy += 420 / 60; p.x += p.vx / 60; p.y += p.vy / 60;
+        const a = 1 - p.age / p.life;
+        cx.fillStyle = `rgba(255,${Math.round(170 + 70 * a)},60,${a})`; cx.beginPath(); cx.arc(X(p.x), Y(p.y), Math.max(1, 2.2 * k), 0, 7); cx.fill();
+      }
+      cx.globalCompositeOperation = "source-over";
+      // name and subtitle
+      cx.textAlign = "center"; cx.textBaseline = "alphabetic";
+      cx.globalAlpha = cl(u / 0.3) * txt;
+      cx.fillStyle = "#f8fafc"; cx.font = `600 ${34 * k}px "Chakra Petch", Consolas, monospace`;
+      spaced(title, X(482), Y(345), 12 * k);
+      cx.fillStyle = "#60a5fa"; cx.font = `600 ${15 * k}px "Chakra Petch", Segoe UI, sans-serif`;
+      spaced(tagline, X(482), Y(390), 5 * k);
+      cx.restore();
+      // stress readout, bottom left: counts up with the load, red once it snaps
+      cx.globalAlpha = cl(u / 0.3);
+      cx.textAlign = "left"; cx.fillStyle = u >= 1.2 ? "#f87171" : "#f8fafc";
+      cx.font = `700 ${Math.max(12, Math.min(18, 15 * k))}px "Chakra Petch", Segoe UI, sans-serif`;
+      cx.fillText(`${stressLabel}: ${(94.3 * ease(cl((u - 0.2) / 1.0))).toFixed(1)} kN/m²`, 16, H - 18);
+      cx.globalAlpha = 1;
+    }
+
     let lastT = 0;
     function frame(now) {
       if (done) return;
@@ -158,44 +245,13 @@
         cx.fillStyle = "#e2e8f0"; cx.font = `600 ${Math.max(15, sz * 0.034)}px "Chakra Petch", Segoe UI, sans-serif`;
         cx.fillText(subtitle, W / 2, H * 0.1); cx.globalAlpha = 1;
       }
-      // the finale: flash, then the title slams in with a crack and a little shake
-      if (t > boomAt) {
+      // the finale: the FAILSPAN logo scene - a suspension bridge sags under load while the stress counts up,
+      // the deck snaps in the middle (yellow crack, sparks, shake), the halves droop and the name appears
+      if (t > boomAt && t < titleAt + 0.35) {
         const f = Math.max(0, 1 - (t - boomAt) / 0.45);
         cx.fillStyle = `rgba(255,237,213,${0.85 * f})`; cx.fillRect(0, 0, W, H);
       }
-      if (t > titleAt) {
-        const q = Math.min(1, (t - titleAt) / 0.3), scale = 1 + 1.3 * Math.pow(1 - q, 3);
-        const shake = q < 1 ? 0 : Math.max(0, 1 - (t - titleAt - 0.3) / 0.35) * sz * 0.012;
-        const tx = W / 2 + (Math.random() - 0.5) * shake, ty = H * 0.22 + (Math.random() - 0.5) * shake;
-        cx.fillStyle = "rgba(7,11,24,.45)"; cx.fillRect(0, ty - sz * 0.13, W, sz * 0.26);
-        cx.save(); cx.translate(tx, ty); cx.scale(scale, scale); cx.globalAlpha = q;
-        const fs = Math.max(34, Math.min(W * 0.13, sz * 0.15));
-        cx.font = `700 ${fs}px "Chakra Petch", Segoe UI, sans-serif`;
-        cx.shadowColor = "#f97316"; cx.shadowBlur = fs * 0.35;
-        const tg = cx.createLinearGradient(0, -fs * 0.8, 0, fs * 0.1);
-        tg.addColorStop(0, "#f8fafc"); tg.addColorStop(0.55, "#cbd5e1"); tg.addColorStop(1, "#64748b");
-        cx.fillStyle = tg; cx.fillText(title, 0, 0);
-        cx.shadowBlur = 0;
-        // glowing fracture crack across the word
-        if (q >= 1) {
-          const tw = cx.measureText(title).width, c = Math.min(1, (t - titleAt - 0.3) / 0.25);
-          cx.strokeStyle = "#fb923c"; cx.lineWidth = Math.max(2, fs * 0.04); cx.shadowColor = "#ef4444"; cx.shadowBlur = fs * 0.25;
-          cx.beginPath();
-          const pts = 9;
-          for (let i = 0; i <= pts * c; i++) { const x = -tw / 2 + (tw * i) / pts, y = -fs * 0.32 + (i % 2 ? -1 : 1) * fs * 0.09 + i * fs * 0.012; if (i) cx.lineTo(x, y); else cx.moveTo(x, y); }
-          cx.stroke(); cx.shadowBlur = 0;
-        }
-        cx.restore();
-        if (tagline && t > titleAt + 0.45) {
-          cx.globalAlpha = Math.min(1, (t - titleAt - 0.45) / 0.3);
-          const ts = Math.max(13, sz * 0.032);
-          cx.font = `700 ${ts}px "Chakra Petch", Segoe UI, sans-serif`;
-          const tw = cx.measureText(tagline).width + ts * 1.6;
-          cx.fillStyle = "#facc15"; cx.fillRect(W / 2 - tw / 2, ty + sz * 0.05, tw, ts * 1.7);
-          cx.fillStyle = "#0b1120"; cx.fillText(tagline, W / 2, ty + sz * 0.05 + ts * 1.22);
-          cx.globalAlpha = 1;
-        }
-      }
+      if (t > titleAt) drawLogo(t - titleAt);
       if (freezeAt === null && t > endAt) return finish();
       raf = requestAnimationFrame(frame);
     }

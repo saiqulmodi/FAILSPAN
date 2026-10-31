@@ -36,6 +36,7 @@ button:disabled { opacity: .45; cursor: default; }
 #screen-class { overflow-y: auto; }
 #screen-start { overflow: auto; padding: 18px; align-items: center; text-align: center; }
 #screen-start h1 { margin: 6px 0 4px; font-size: 34px; font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; letter-spacing: 3px; }
+#screen-start h1 .logo { display: block; width: min(520px, 92vw); height: auto; margin: 0 auto; background: #0a0e1a; border-radius: 14px; }
 #screen-start p { color: var(--muted); max-width: 640px; }
 #screen-start .tagline { margin: 0 0 6px; color: var(--gold); letter-spacing: 1px; font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 600; }
 /* 3D views and their glass HUD */
@@ -189,8 +190,18 @@ input[type=search] { font: inherit; background: var(--panel); color: var(--text)
   </header>
 
   <section class="screen" id="screen-start">
-    <h1>🌉 <span data-t="FAILSPAN">FAILSPAN</span></h1>
-    <p class="tagline"><b data-t="STRUCTURAL MAYHEM">STRUCTURAL MAYHEM</b> · <span data-t="Build. Stress. Snap.">Build. Stress. Snap.</span></p>
+    <h1><svg class="logo" viewBox="196 16 572 392" role="img" aria-label="FAILSPAN - Structural Mayhem">
+      <circle cx="482" cy="200" r="178" fill="none" stroke="rgba(59,130,246,.45)" stroke-width="1.5" stroke-dasharray="6 6"/>
+      <polyline points="240,212 420,212 482,248 545,212 727,212" fill="none" stroke="rgba(37,99,235,.35)" stroke-width="4"/>
+      <path d="M226 152H258L262 262H215Z M706 152H738L765 262H703Z" fill="#2563eb"/>
+      <g stroke="rgba(147,197,253,.75)" stroke-width="1.5"><line x1="305" y1="180.9" x2="305" y2="268"/><line x1="370" y1="200.1" x2="370" y2="268"/><line x1="433" y1="210.5" x2="433" y2="268"/><line x1="532" y1="210.5" x2="532" y2="268"/><line x1="593" y1="200.5" x2="593" y2="268"/><line x1="655" y1="182.6" x2="655" y2="268"/></g>
+      <path d="M238 152Q482 274 727 152" fill="none" stroke="#60a5fa" stroke-width="6" stroke-linecap="round"/>
+      <path d="M240 238Q380 252 478 322 M500 268Q610 244 727 238" fill="none" stroke="#f8fafc" stroke-width="8"/>
+      <polyline points="478,258 489,272 470,312" fill="none" stroke="#fbbf24" stroke-width="3.5"/>
+      <text x="482" y="345" text-anchor="middle" fill="#f8fafc" font-size="34" font-weight="600" letter-spacing="12" font-family="Chakra Petch, Consolas, monospace">FAILSPAN</text>
+      <text x="482" y="390" text-anchor="middle" fill="#60a5fa" font-size="15" font-weight="600" letter-spacing="5" font-family="Chakra Petch, Segoe UI, sans-serif">STRUCTURAL MAYHEM</text>
+    </svg></h1>
+    <p class="tagline"><span data-t="Build. Stress. Snap.">Build. Stress. Snap.</span></p>
     <p data-t="Every class has its own building on the road. Answer your class's questions to earn parts, then build a real-physics bridge and test it with traffic. Easy bridges first, tougher ones as you climb.">Every class has its own building on the road. Answer your class's questions to earn parts, then build a real-physics bridge and test it with traffic. Easy bridges first, tougher ones as you climb.</p>
     <p><b data-t="Which class are you in?">Which class are you in?</b> <span data-t="Buildings up to your class open now; build a bridge to open the next one.">Buildings up to your class open now; build a bridge to open the next one.</span></p>
     <p><button id="btn-lang2" onclick="document.getElementById('btn-lang').click()">English / বাংলা</button></p>
