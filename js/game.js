@@ -39,7 +39,7 @@
     return { start: -1, score: 0, best: 0, treasury: 50000000, vehicles: 0, muted: false, lang: "en", autoRead: true,
              correct: {}, bridgeCorrect: {}, complete: {}, bestParts: {}, builds: {}, parts: {},
              streak: 0, lastDaily: "", dailyDate: "", dailyCount: 0, answered: 0, badges: {}, weekly: { week: -1, best: null, build: [] },
-             preview: {}, done: {}, doneN: {}, view3d: false };
+             preview: {}, done: {}, doneN: {}, view3d: false, lowGfx: false };
   }
   function load() {
     try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === "object") return Object.assign(fresh(), s); } catch (e) {}
@@ -213,12 +213,73 @@
   }
 
   // ---------------- 2D / 3D: the choice is saved; Three.js loads only when 3D is used ----------------
-  const v3 = { view: null, loading: null, shown: false };
+  const v3 = { view: null, world: null, loading: null, shown: false, wshown: false };
+  const lowGfx = () => S.lowGfx || world.lowFx;
   function load3d() {
-    if (!v3.loading) v3.loading = import("./view3d.js").then(m => { v3.view = m.create($("build3d")); return v3.view; })
-      .catch(e => { console.error(e); v3.loading = null; toast(t("3D could not start on this device. 2D still works.")); throw e; });
+    if (!v3.loading) v3.loading = import("./view3d.js").then(m => {
+      v3.view = m.createBridge($("build3d"), { low: lowGfx() });
+      v3.world = m.createWorld($("world3d"), { low: lowGfx(),
+        pan: dx => { world.cam += dx; world.clamp(); },
+        pick: level => enterOrExplain(level) });
+      return v3.view;
+    }).catch(e => { console.error(e); v3.loading = null; toast(t("3D could not start on this device. 2D still works.")); throw e; });
     return v3.loading;
   }
+  // new canvases + views when "Low graphics" changes (a WebGL canvas keeps its first settings)
+  function rebuild3d() {
+    if (!v3.view) return;
+    for (const id of ["build3d", "world3d"]) { const c = $(id), n = c.cloneNode(false); c.replaceWith(n); }
+    v3.view = v3.world = null; v3.loading = null;
+    load3d().then(() => { show3d(v3.shown); showWorld3d(v3.wshown); }).catch(() => {});
+  }
+  function showWorld3d(on) {
+    v3.wshown = on && S.view3d;
+    $("screen-world").classList.toggle("v3d", v3.wshown);
+    if (v3.wshown) load3d().then(() => v3.world && v3.world.setVisible(v3.wshown)).catch(() => { v3.wshown = false; $("screen-world").classList.remove("v3d"); });
+    else if (v3.world) v3.world.setVisible(false);
+  }
+  // what the 3D bridge view needs this frame (the physics is the same solver as 2D)
+  function snap3d() {
+    const p = cur.project, d = cur.design, all = d.all(), tt = cur.test, res = tt && tt.result;
+    return { project: p, members: all, key: p.id + "|" + all.map(m => m.slice(0, 4).join(",")).join(";"), testId: tt ? tt.id : 0,
+      colours: all.map(m => { const c = CAT.materials[m[2]].colour; return `rgb(${c[0]},${c[1]},${c[2]})`; }),
+      ratios: res ? res.members.map(r => r.status === FAILED ? Math.max(1, r.ratio) : r.ratio) : null,
+      slack: res ? res.members.map(r => r.slack) : null,
+      failIdx: tt ? tt.failIdx : undefined, status: tt ? tt.status : null, vx: tt ? tt.x : null, worstNow: res ? res.maxRatio : 0 };
+  }
+  function wsnap3d() {
+    const slots = world.slots.map((s, k) => {
+      const l = LV[k], done = !!S.complete[l.l], locked = !isUnlocked(l.l);
+      return { level: s.level, x: s.x, w: s.w, project: l.project, zone: ZONE[l.project - 1], name: lname(l), done, locked,
+               sub: locked ? t("Locked") : openShare(l.l) < 1 ? t("Half open") : starText(starsOf(l.l)) };
+    });
+    return { slots, width: world.width, center: world.cam + (world.cw || 800) / 2,
+             key: getLang() + slots.map(s => s.sub + s.done + s.locked).join("") };
+  }
+  // the glass HUD over the 3D bridge: live stress %, a small graph, warnings
+  const h3 = { id: -1, hist: [] };
+  function hud3d() {
+    const tt = cur && cur.test, res = tt && tt.result, r = res ? res.maxRatio : 0;
+    if (!tt || tt.id !== h3.id) { h3.id = tt ? tt.id : -1; h3.hist = []; }
+    if (tt && tt.status === "running" && res) { h3.hist.push(r); if (h3.hist.length > 160) h3.hist.shift(); }
+    $("h3pct").textContent = tt && (res || tt.status === "failed") ? `${Math.round((res ? r : 1) * 100)}%` : "--";
+    const col = r >= 0.8 || (tt && tt.status === "failed") ? "#ef4444" : r >= 0.5 ? "#f59e0b" : "#22c55e";
+    $("h3pct").style.color = col; $("h3bar").style.width = `${Math.min(100, r * 100)}%`; $("h3bar").style.background = col;
+    const g = $("h3graph").getContext("2d"), gw = 160, gh = 36;
+    g.clearRect(0, 0, gw, gh); g.strokeStyle = "rgba(56,189,248,.35)"; g.lineWidth = 1; g.beginPath(); g.moveTo(0, gh * 0.2); g.lineTo(gw, gh * 0.2); g.stroke();
+    if (h3.hist.length > 1) {
+      g.strokeStyle = col; g.lineWidth = 2; g.beginPath();
+      h3.hist.forEach((v, k) => { const x = k / 159 * gw, y = gh - Math.min(1.25, v) / 1.25 * gh; if (k) g.lineTo(x, y); else g.moveTo(x, y); });
+      g.stroke();
+    }
+    const w = $("h3warn");
+    let msg = "", cls = "";
+    if (tt && tt.status === "failed") { msg = t("💥 STRUCTURAL FAILURE"); cls = "bad"; }
+    else if (tt && tt.status === "passed") { msg = t("✔ BRIDGE HOLDS"); cls = "good"; }
+    else if (tt && tt.status === "running" && r >= 0.9) { msg = t("⚠ FRACTURE IMMINENT"); cls = "bad pulse"; }
+    if (w.dataset.m !== msg + cls) { w.dataset.m = msg + cls; w.textContent = msg; w.className = "g3 warn " + cls; w.hidden = !msg; }
+  }
+  const after3d = fn => { if (v3.shown) setTimeout(fn, 2300); else fn(); };   // let the 3D collapse play first
   function show3d(on) {
     v3.shown = on && S.view3d;
     $("buildwrap").classList.toggle("v3d", v3.shown);
@@ -226,7 +287,11 @@
     else if (v3.view) v3.view.setVisible(false);
     hud();
   }
-  function setView3d(on) { S.view3d = on; save(); if (on) load3d().catch(() => {}); show3d(on && view === "class"); buildStart(); }
+  function setView3d(on) {
+    S.view3d = on; save(); if (on) load3d().catch(() => {});
+    document.body.classList.toggle("mode3d", on);
+    show3d(on && view === "class"); showWorld3d(on && view === "world"); buildStart();
+  }
   function applyLang() {
     setLang(S.lang);
     document.documentElement.lang = S.lang === "bn" ? "bn" : "en";
@@ -243,6 +308,7 @@
     if (name === "world") { buildMinimap(); resizeWorld(); if (world.focusLevel) world.focus(world.focusLevel); }
     if (name === "class") resizeBuild();
     show3d(name === "class" && S.view3d);
+    showWorld3d(name === "world" && S.view3d);
   }
   // mouse wheel scrolls the chip row, toolbar and minimap sideways (they swipe on phones)
   for (const id of ["chips", "toolbar", "minimap"]) $(id).addEventListener("wheel", e => {
@@ -255,6 +321,11 @@
     for (const [on, label] of [[false, "2D"], [true, "🧊 3D"]]) {
       const b = document.createElement("button"); b.textContent = label; b.classList.toggle("on", S.view3d === on);
       b.onclick = () => setView3d(on); vp.appendChild(b);
+    }
+    if (S.view3d) {
+      const lg = document.createElement("button"); lg.textContent = "⚡ " + t("Low graphics"); lg.classList.toggle("on", !!S.lowGfx);
+      lg.title = t("Fewer effects for slow phones");
+      lg.onclick = () => { S.lowGfx = !S.lowGfx; save(); buildStart(); rebuild3d(); }; vp.appendChild(lg);
     }
     const g = $("classgrid"); g.innerHTML = "";
     LV.forEach((l, k) => {
@@ -776,10 +847,12 @@
   });
   bc.addEventListener("pointermove", e => { const r = bc.getBoundingClientRect(); if (cur) cur.mouse = [e.clientX - r.left, e.clientY - r.top]; });
 
+  let testSerial = 0;
   function startTest() {
     if (busy()) return;
     cur.sel = null; cur.del = false; cur.forces = false; cur.fj = null; renderToolbar();
-    cur.test = { x: 0, status: "running", result: null, worst: 0 };
+    cur.test = { x: 0, status: "running", result: null, worst: 0, id: ++testSerial };
+    if (S.view3d && !v3.shown) show3d(true);   // build in 2D, watch the test drive in 3D
     track("test_start", { level: cur.level });
     stepTest(0);
   }
@@ -831,11 +904,11 @@
       sfx.snap(); track("game_over", { level: lvl });
       const n = nextGuided(), member = cur.test.failIdx !== undefined;
       setMsg(t("{why} Strengthen the dark red member (bigger size, stronger material) or add bracing.", { why }), "bad");
-      modal(t("💥 The bridge failed"), `<p><b>${esc(why)}</b></p><p>${t(member ? "The broken member is dark red. Hover or tap any member to read its force."
+      after3d(() => modal(t("💥 The bridge failed"), `<p><b>${esc(why)}</b></p><p>${t(member ? "The broken member is dark red. Hover or tap any member to read its force."
         : "Nothing broke - the frame could move like a mechanism, so it needs more members.")}</p><p>${esc(t(p.hints[0]))}</p>`,
         [[t("Second chance: show the next guided member"), () => { closeModal(); track("reward_offered", { kind: "fix" });
           offerReward(() => { track("reward_taken", { kind: "fix" }); cur.guide = true; $("btn-guide").classList.add("on"); setMsg(n ? guideLine() : t("Your design is complete - make the red member bigger.")); }); }],
-         [t("Try again"), closeModal]]);
+         [t("Try again"), closeModal]]));
     }
     checkBadges(); save(); hud(); renderClassbar(); buildMinimap();
   }
@@ -1076,8 +1149,12 @@
     // weak phone: switch off decorations instead of dropping frames
     world.frameMs.push(dt * 1000); if (world.frameMs.length > 120) world.frameMs.shift();
     if (!world.lowFx && world.frameMs.length === 120 && world.frameMs.reduce((a, b) => a + b) / 120 > 34) world.lowFx = true;
-    if (view === "world") drawWorld(now);
-    else if (view === "class") { stepTest(dt); drawBuild(now); if (v3.shown && v3.view) v3.view.render(now); }
+    if (view === "world") {
+      if (v3.wshown && v3.world) { $("world3d").style.height = wc.clientHeight + "px"; v3.world.render(now, wsnap3d()); } else drawWorld(now);
+    } else if (view === "class") {
+      stepTest(dt); drawBuild(now);
+      if (v3.shown && v3.view && cur) { v3.view.render(now, snap3d()); hud3d(); }
+    }
     requestAnimationFrame(frame);
   }
 
@@ -1088,6 +1165,8 @@
     world.layout();
     $("loading").remove(); $("app").hidden = false;
     applyLang();
+    document.body.classList.toggle("mode3d", !!S.view3d);
+    if (S.view3d) load3d().catch(() => {});
     // opening theme: dominoes from Class 1 down to Expert Engineer, each smaller, then the game starts
     window.BWIntro.play({
       labels: LV.map(lname), title: "🌉 " + t("FAILSPAN"), subtitle: t("The way to your destination"), skipText: t("Skip ▶"),

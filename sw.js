@@ -1,6 +1,6 @@
 // Offline once loaded: the game files are cached on install; each class's questions are cached the first time it opens.
 const CACHE = "failspan-v1";
-const CORE = ["./", "index.html", "js/truss.js", "js/i18n.js", "js/intro.js", "js/game.js", "js/view3d.js", "data/levels.json", "data/projects.json", "favicon.png"];
+const CORE = ["./", "index.html", "js/truss.js", "js/i18n.js", "js/intro.js", "js/game.js", "js/view3d.js", "vendor/fonts/chakra-petch-600.woff2", "vendor/fonts/chakra-petch-700.woff2", "data/levels.json", "data/projects.json", "favicon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));

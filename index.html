@@ -8,6 +8,8 @@
 <meta name="description" content="Build real-physics bridges and learn: every class from 1 to 12, BE, NIT, IIT and Expert Engineer has its own building, question bank and bridge project.">
 <link rel="icon" href="favicon.png">
 <style>
+@font-face { font-family: "Chakra Petch"; font-weight: 600; font-display: swap; src: url(vendor/fonts/chakra-petch-600.woff2) format("woff2"); }
+@font-face { font-family: "Chakra Petch"; font-weight: 700; font-display: swap; src: url(vendor/fonts/chakra-petch-700.woff2) format("woff2"); }
 :root {
   --bg: #0b1120; --panel: #1e293b; --panel2: #0f172a; --line: #334155; --text: #f1f5f9; --muted: #94a3b8;
   --accent: #0284c7; --accent2: #38bdf8; --good: #22c55e; --bad: #ef4444; --gold: #facc15; --mint: #34d399;
@@ -32,9 +34,35 @@ button:disabled { opacity: .45; cursor: default; }
 /* start */
 #screen-class { overflow-y: auto; }
 #screen-start { overflow: auto; padding: 18px; align-items: center; text-align: center; }
-#screen-start h1 { margin: 6px 0 4px; font-size: 28px; }
+#screen-start h1 { margin: 6px 0 4px; font-size: 34px; font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 700; letter-spacing: 3px; }
 #screen-start p { color: var(--muted); max-width: 640px; }
-#screen-start .tagline { margin: 0 0 6px; color: var(--gold); letter-spacing: 1px; }
+#screen-start .tagline { margin: 0 0 6px; color: var(--gold); letter-spacing: 1px; font-family: "Chakra Petch", "Segoe UI", sans-serif; font-weight: 600; }
+/* 3D views and their glass HUD */
+#world3d { position: absolute; left: 0; top: 0; width: 100%; display: none; touch-action: none; }
+#screen-world.v3d #world3d { display: block; }
+#hud3d { position: absolute; inset: 0; pointer-events: none; z-index: 2; display: none; }
+#buildwrap.v3d #hud3d { display: block; }
+.g3 { background: rgba(15,23,42,.55); border: 1px solid rgba(56,189,248,.55); border-radius: 10px; box-shadow: 0 0 14px rgba(56,189,248,.25), inset 0 0 10px rgba(56,189,248,.08);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); font-family: "Chakra Petch", "Segoe UI", sans-serif; }
+#hud3d .stress { position: absolute; right: 8px; bottom: 8px; padding: 6px 10px; width: 180px; }
+#hud3d .stress .lbl { font-size: 11px; letter-spacing: 2px; color: #7dd3fc; }
+#hud3d .stress .pct { font-size: 26px; font-weight: 700; line-height: 1.05; }
+#hud3d .stress .bar { height: 6px; background: rgba(51,65,85,.8); border-radius: 3px; overflow: hidden; margin: 3px 0; }
+#hud3d .stress .bar i { display: block; height: 100%; width: 0; }
+#hud3d .stress canvas { display: block; width: 160px; height: 36px; }
+#hud3d .warn { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); padding: 8px 18px; font-size: 22px; font-weight: 700; letter-spacing: 2px; white-space: nowrap; }
+#hud3d .warn[hidden] { display: none; }
+#hud3d .warn.bad { color: #fecaca; border-color: rgba(239,68,68,.8); box-shadow: 0 0 22px rgba(239,68,68,.55); }
+#hud3d .warn.good { color: #bbf7d0; border-color: rgba(34,197,94,.8); box-shadow: 0 0 22px rgba(34,197,94,.45); }
+#hud3d .warn.pulse { animation: warnpulse .45s ease-in-out infinite alternate; }
+@keyframes warnpulse { from { opacity: .55; } to { opacity: 1; } }
+body.mode3d #hud, body.mode3d #card, body.mode3d #modal .box { background: rgba(15,23,42,.72); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border-color: rgba(56,189,248,.5); box-shadow: 0 0 14px rgba(56,189,248,.18); }
+body.mode3d button { background: rgba(30,41,59,.7); border-color: rgba(56,189,248,.35); }
+body.mode3d button.on, body.mode3d button.primary { background: rgba(2,132,199,.75); border-color: #38bdf8; box-shadow: 0 0 10px rgba(56,189,248,.45); }
+body.mode3d button.go { background: rgba(21,128,61,.8); border-color: #22c55e; box-shadow: 0 0 10px rgba(34,197,94,.4); }
+body.mode3d .classbar .title b, body.mode3d #modal .mhead h2, body.mode3d #buildinfo .goal { font-family: "Chakra Petch", "Segoe UI", sans-serif; letter-spacing: .5px; }
+@media (max-width: 560px) { #hud3d .warn { font-size: 16px; padding: 6px 12px; bottom: auto; top: 42%; } #hud3d .stress { width: 150px; } #hud3d .stress .pct { font-size: 20px; } }
 .viewpick { display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
 #build3d { position: absolute; inset: 0; width: 100%; height: 100%; display: none; z-index: 1; touch-action: none; }
 #buildwrap.v3d #build3d { display: block; }
@@ -131,7 +159,8 @@ input[type=search] { font: inherit; background: var(--panel); color: var(--text)
   #card .q { font-size: 15px; }
   .classgrid { grid-template-columns: repeat(3, 1fr); }
   .bankitem ol { columns: 1; }
-  #hud .stats { font-size: 12px; gap: 4px 10px; }
+  #hud .stats { font-size: 12px; gap: 4px 10px; flex: 1 1 100%; order: 2; }
+  #hud { justify-content: flex-end; }
   #buildinfo { position: relative; padding: 6px 8px 2px; background: #0f172a; order: -1; }
   #buildwrap { flex: 0 0 auto; }
   #build { flex: 0 0 auto; height: 230px; }
@@ -163,7 +192,7 @@ input[type=search] { font: inherit; background: var(--panel); color: var(--text)
   </section>
 
   <section class="screen" id="screen-world">
-    <canvas id="world"></canvas>
+    <canvas id="world"></canvas><canvas id="world3d"></canvas>
     <nav id="minimap"></nav>
   </section>
 
@@ -176,7 +205,7 @@ input[type=search] { font: inherit; background: var(--panel); color: var(--text)
       <button id="btn-bank" data-t="📋 Q&amp;A Bank">📋 Q&amp;A Bank</button>
     </div>
     <div id="chips"></div>
-    <div id="buildwrap"><canvas id="build"></canvas><canvas id="build3d"></canvas><div id="buildinfo"></div></div>
+    <div id="buildwrap"><canvas id="build"></canvas><canvas id="build3d"></canvas><div id="hud3d"><div class="g3 stress"><div class="lbl" data-t="STRESS">STRESS</div><div class="pct" id="h3pct">--</div><div class="bar"><i id="h3bar"></i></div><canvas id="h3graph" width="160" height="36"></canvas></div><div class="g3 warn" id="h3warn" hidden></div></div><div id="buildinfo"></div></div>
     <div id="toolbar"></div>
     <div id="card"></div>
   </section>
