@@ -40,10 +40,11 @@ function addSun(scene, at) {
   const halo = new THREE.Mesh(new THREE.SphereGeometry(30, 20, 12), new THREE.MeshBasicMaterial({ color: 0xff7a2f, transparent: true, opacity: 0.25, fog: false }));
   halo.position.copy(at); scene.add(halo);
 }
-function mountains(group, cx, n, r0, r1) {
+function mountains(group, cx, n, r0, r1, zMax = Infinity) {
   const mat = new THREE.MeshLambertMaterial({ color: 0x4a2f52, flatShading: true });
   for (let k = 0; k < n; k++) {
     const a = (k / n) * Math.PI * 2 + rnd(-0.1, 0.1), r = rnd(r0, r1), h = rnd(25, 70);
+    if (Math.sin(a) * r > zMax) continue;   // keep the view to the road clear
     const m = new THREE.Mesh(new THREE.ConeGeometry(rnd(25, 50), h, 5), mat);
     m.position.set(cx + Math.cos(a) * r, h / 2 - 30, Math.sin(a) * r); m.rotation.y = rnd(0, 3); group.add(m);
   }
@@ -484,7 +485,7 @@ export function createWorld(canvas, hooks) {
       const car = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.3, 1.8), new THREE.MeshStandardMaterial({ color: cols[k % 5], metalness: 0.4, roughness: 0.4 }));
       car.position.set(rnd(0, len), 0.75, k % 2 ? 4 : 8); car.userData.v = (k % 2 ? -1 : 1) * rnd(6, 11); world.add(car); cars.push(car);
     }
-    mountains(world, len / 2, low ? 10 : 22, 220, 360);
+    mountains(world, len / 2, low ? 10 : 22, 220, 360, -90);
     addSun(world, new THREE.Vector3(len / 2 - 200, 30, -330));
     scene.add(world); built = true;
     world.userData.len = len;
