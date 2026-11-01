@@ -40,7 +40,8 @@
     return m && m[0].trim() ? m[0].trim() : (WORD_ICON[word || label] || "");
   };
   const RANK_ICON = { "Expert Engineer": "🏆", "Chief Engineer": "🥇", "Site Engineer": "🥈", "Junior Engineer": "🥉", "Trainee": "🔰" };
-  const classSym = info => (SYM && /^Class \d+$/.test(info.name)) ? "🏫 " + info.name.slice(6) : lname(info);
+  const classSym = info => !SYM ? lname(info) : /^Class \d+$/.test(info.name) ? "🏫 " + info.name.slice(6)
+    : /^Expert/.test(info.name) ? "🏆" : lname(info);   // BE / NIT / IIT stay as they are
 
   let LV = [], NAMES = {}, CAT = null, HANDBOOK = null;
   const QCACHE = {};
@@ -1081,9 +1082,9 @@
     const pages = () => Math.max(1, Math.ceil(cur.pool.length / per));
     const draw = () => {
       const items = cur.pool.slice(page * per, page * per + per);
-      $("m-body").innerHTML = items.map((q, k) => { const v = shown(q); return `<div class="bankitem"><div class="bq">${page * per + k + 1}. [${esc(sname(q.s))}] ${esc(v.q)}</div>
+      $("m-body").innerHTML = items.map((q, k) => { const v = shown(q); return `<div class="bankitem"><div class="bq">${page * per + k + 1}. ${SYM ? (SUBJ_ICON[q.s] || "") : `[${esc(sname(q.s))}]`} ${esc(v.q)}</div>
         <ol type="A">${v.o.map((o, i) => `<li data-i="${i}" data-a="${q.a}">${esc(o)}</li>`).join("")}</ol>
-        <div class="be" hidden>${esc(t("Answer: {a}", { a: v.o[q.a] }))} · ${esc(v.e)}</div></div>`; }).join("");
+        <div class="be" hidden>${SYM ? `✔ ${esc(v.o[q.a])}` : esc(t("Answer: {a}", { a: v.o[q.a] }))} · ${esc(v.e)}</div></div>`; }).join("");
       // answers stay hidden until an option is tapped: right = green, a wrong pick = red, then the explanation
       $("m-body").querySelectorAll(".bankitem li").forEach(li => li.onclick = () => {
         const item = li.closest(".bankitem"); if (item.classList.contains("done")) return;
@@ -1092,13 +1093,16 @@
         if (li.dataset.i !== li.dataset.a) li.classList.add("wrong");
         item.querySelector(".be").hidden = false;
       });
-      $("pg").textContent = t("Page {a} of {b}", { a: (page + 1).toLocaleString("en-IN"), b: pages().toLocaleString("en-IN") });
+      $("pg").textContent = SYM ? `${(page + 1).toLocaleString("en-IN")} / ${pages().toLocaleString("en-IN")}`
+        : t("Page {a} of {b}", { a: (page + 1).toLocaleString("en-IN"), b: pages().toLocaleString("en-IN") });
       $("m-body").scrollTop = 0;
     };
     const go = d => { page = Math.max(0, Math.min(pages() - 1, page + d)); draw(); };
     const subj = cur.subject ? sname(cur.subject) : t("All subjects");
-    modal(esc(t("📋 Q&A Bank: {a} - {b} ({n})", { a: lname(cur.info), b: subj, n: cur.pool.length.toLocaleString("en-IN") })), "", [
-      ["⏮", () => go(-1e9), ""], [t("◀ Prev"), () => go(-1)], [`<span id="pg"></span>`, () => {}, ""], [t("Next ▶"), () => go(1)], ["⏭", () => go(1e9), ""]]);
+    const bankTitle = SYM ? `📋 ${esc(classSym(cur.info))} · ${cur.subject ? (SUBJ_ICON[cur.subject] || esc(subj)) : "✳️"} · ${cur.pool.length.toLocaleString("en-IN")}`
+      : esc(t("📋 Q&A Bank: {a} - {b} ({n})", { a: lname(cur.info), b: subj, n: cur.pool.length.toLocaleString("en-IN") }));
+    modal(bankTitle, "", [
+      ["⏮", () => go(-1e9), ""], [SYM ? "◀" : t("◀ Prev"), () => go(-1)], [`<span id="pg"></span>`, () => {}, ""], [SYM ? "▶" : t("Next ▶"), () => go(1)], ["⏭", () => go(1e9), ""]]);
     draw();
     modalKeys = e => { if (e.key === "ArrowRight") go(1); else if (e.key === "ArrowLeft") go(-1); else if (e.key === "PageDown") go(50); else if (e.key === "PageUp") go(-50); };
   }
@@ -1107,6 +1111,17 @@
     cur.guide = !cur.guide; $("btn-guide").classList.toggle("on", cur.guide);
     if (!cur.guide) { setMsg(""); return; }
     const n = nextGuided(), nowStep = n ? cur.project.steps.indexOf(n.step) : cur.project.steps.length;
+    if (SYM) {
+      const items = cur.project.steps.map((st, k) => {
+        const mark = k < nowStep ? "✓" : k === nowStep ? "▶" : "·";
+        const sizes = [...new Set(st.members.map(m => m[3]))].join("/");
+        return `<li class="${k < nowStep ? "done" : k === nowStep ? "now" : ""}">${mark} ${MAT_ICON[st.members[0][2]] || ""} × ${st.members.length} · ${sizes}</li>`;
+      }).join("");
+      modal(`🧭 ${Math.min(nowStep + 1, cur.project.steps.length)}/${cur.project.steps.length}`, `<ol class="steps">${items}</ol>`,
+        [["▶", () => { closeModal(); renderInfo(); }]]);
+      renderInfo();
+      return;
+    }
     const steps = cur.project.steps.map((s, k) => `<li class="${k < nowStep ? "done" : k === nowStep ? "now" : ""}">${esc(t(s.text))}
       <small>(${s.members.length} × ${esc(matName(s.members[0][2]))}${[...new Set(s.members.map(m => m[3]))].map(x => " " + x).join("/")})</small></li>`).join("");
     modal(esc(t("🧭 Guided build: {p}", { p: t(cur.project.name) })), `<p>${esc(t(cur.project.goal))}</p><ol class="steps">${steps}</ol>
@@ -1116,30 +1131,39 @@
   }
 
   async function openHandbook() {
-    if (!HANDBOOK) { modal(t("📘 Engineering Handbook"), "<p>…</p>"); HANDBOOK = await (await fetch("data/handbook.json")).json(); }
+    if (!HANDBOOK) { modal(SYM ? "📘" : t("📘 Engineering Handbook"), "<p>⏳</p>"); HANDBOOK = await (await fetch("data/handbook.json")).json(); }
     let sec = 0, query = "";
     const draw = () => {
       const bn = getLang() === "bn";
-      const tabs = HANDBOOK.map((s, k) => `<button class="${k === sec && !query ? "on" : ""}" data-s="${k}">${esc(bn ? s.title_bn : s.title)}</button>`).join(" ");
+      const tabs = HANDBOOK.map((s, k) => `<button class="${k === sec && !query ? "on" : ""}" data-s="${k}" title="${esc(bn ? s.title_bn : s.title)}">${SYM ? k + 1 : esc(bn ? s.title_bn : s.title)}</button>`).join(" ");
       const rows = [];
       HANDBOOK.forEach((s, k) => s.items.forEach((it, i) => {
         const hit = query ? (it[0] + it[1] + it[2] + it[3]).toLowerCase().includes(query) : k === sec;
         if (hit) rows.push(`<details><summary>Q${s.first + i}. ${esc(bn ? it[2] : it[0])}</summary><p>${esc(bn ? it[3] : it[1])}</p></details>`);
       }));
       $("m-body").innerHTML = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${tabs}</div>` +
-        `<p><small>${esc(t("200 answers from the classic FAILSPAN levels: the physics of trusses, beams, wind, quakes and money."))}</small></p>` +
-        (rows.join("") || `<p>${t("No matches.")}</p>`);
+        (SYM ? "" : `<p><small>${esc(t("200 answers from the classic FAILSPAN levels: the physics of trusses, beams, wind, quakes and money."))}</small></p>`) +
+        (rows.join("") || `<p>${SYM ? "∅" : t("No matches.")}</p>`);
       $("m-body").querySelectorAll("button[data-s]").forEach(b => b.onclick = () => { sec = +b.dataset.s; query = ""; $("hb-q").value = ""; draw(); });
     };
-    modal(t("📘 Engineering Handbook"), "", [[`<input type="search" id="hb-q" placeholder="${esc(t("Search both languages…"))}">`, () => {}, ""]]);
+    modal(SYM ? "📘" : t("📘 Engineering Handbook"), "", [[`<input type="search" id="hb-q" placeholder="${SYM ? "🔍" : esc(t("Search both languages…"))}">`, () => {}, ""]]);
     $("hb-q").addEventListener("input", e => { query = e.target.value.trim().toLowerCase(); draw(); });
     draw();
   }
 
   function openProfile() {
     const done = nDone(S), stars = LV.reduce((a, l) => a + starsOf(l.l), 0);
-    const badges = BADGES.map(([k, ic, name]) => `<div class="badge ${S.badges[k] ? "got" : ""}"><span class="ic">${S.badges[k] ? ic : "🔒"}</span>${esc(t(name))}</div>`).join("");
-    const startSel = LV.map((l, k) => `<option value="${k}" ${k === S.start ? "selected" : ""}>${esc(lname(l))}</option>`).join("");
+    const badges = BADGES.map(([k, ic, name]) => `<div class="badge ${S.badges[k] ? "got" : ""}" title="${esc(t(name))}"><span class="ic">${S.badges[k] ? ic : "🔒"}</span>${SYM ? "" : esc(t(name))}</div>`).join("");
+    const startSel = LV.map((l, k) => `<option value="${k}" ${k === S.start ? "selected" : ""}>${esc(classSym(l))}</option>`).join("");
+    if (SYM) {
+      const x = [[16, "Expert Engineer"], [10, "Chief Engineer"], [5, "Site Engineer"], [1, "Junior Engineer"]].find(([n]) => nDone(S) >= n);
+      modal(`🏅 ${RANK_ICON[x ? x[1] : "Trainee"]}`,
+        `<p style="font-size:1.15em">🌉 ${done}/16 · ⭐ ${stars}/48 · ✔ ${totalCorrect(S).toLocaleString("en-IN")} · 🏆 ${S.best} · 🔥 ${S.streak}</p>` +
+        `<div class="badges">${badges}</div><p style="margin-top:14px">🏫 <select id="pf-start" style="font:inherit;padding:6px;border-radius:6px">${startSel}</select></p>`,
+        [["📄", openReport], ["✔", closeModal]]);
+      $("pf-start").onchange = e => { S.start = +e.target.value; save(); buildMinimap(); toast("🏫 ✔"); };
+      return;
+    }
     modal(`🏅 ${esc(title())}`, `<p>${esc(t("{a} of 16 bridges built · {b} of 48 stars · {c} right answers · best score {d} · 🔥 {e}-day streak",
         { a: done, b: stars, c: totalCorrect(S).toLocaleString("en-IN"), d: S.best, e: S.streak }))}</p><div class="badges">${badges}</div>
       <p style="margin-top:14px">${t("My class:")} <select id="pf-start" style="font:inherit;padding:6px;border-radius:6px">${startSel}</select>
