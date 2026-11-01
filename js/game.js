@@ -25,6 +25,22 @@
   const MAT_SHORT = { "Steel cable": "Steel cable", "Carbon-fibre cable": "Carbon cable", "Steel": "Steel beam",
                       "Timber": "Timber beam", "Concrete": "Concrete beam" };
   const matName = m => t(MAT_SHORT[m] || m);
+  // ---- Symbols only, no write-up (user, 01-Nov-2026, all games): buttons keep their symbol, words go. The
+  // questions and answers (the lesson), the physics formula, numbers and the language names stay.
+  const SYM = true;
+  const SUBJ_ICON = { math: "➗", physics: "⚛️", chemistry: "⚗️", biology: "🧬", evs: "🌿", commercials: "🛒",
+    economics: "📈", finance: "💰", geography: "🌍", general_safety: "🦺", civil: "🏗️", engineering: "⚙️",
+    computer: "💻", bridge: "🌉" };
+  const MAT_ICON = { "Steel cable": "🔗", "Carbon-fibre cable": "⛓️", "Steel": "🔩", "Timber": "🪵", "Concrete": "🧱" };
+  const WORD_ICON = { "Clear": "🧹", "STRESS": "📈", "All": "✳️", "2D": "2D" };
+  // the leading symbol of a label ("🗑 Delete" -> "🗑", "◀ World" -> "◀"), or a symbol for a plain word
+  const sym = (label, word) => {
+    if (!SYM) return label;
+    const m = String(label).match(/^[^\p{L}\p{N}]+/u);
+    return m && m[0].trim() ? m[0].trim() : (WORD_ICON[word || label] || "");
+  };
+  const RANK_ICON = { "Expert Engineer": "🏆", "Chief Engineer": "🥇", "Site Engineer": "🥈", "Junior Engineer": "🥉", "Trainee": "🔰" };
+  const classSym = info => (SYM && /^Class \d+$/.test(info.name)) ? "🏫 " + info.name.slice(6) : lname(info);
 
   let LV = [], NAMES = {}, CAT = null, HANDBOOK = null;
   const QCACHE = {};
@@ -152,7 +168,14 @@
   // messages queue up and show one after another, so none is missed
   const toasts = [];
   let toastBusy = false;
-  function toast(msg, ms = 2200) { toasts.push([msg, ms]); if (!toastBusy) nextToast(); }
+  function toast(msg, ms = 2200) {
+    if (SYM) {                                 // keep the leading symbol and any numbers ("🔥 ... 3-day ... +5" -> "🔥 3 +5")
+      const lead = sym(msg), nums = (String(msg).replace(/<[^>]*>/g, "").match(/[+−-]?\d[\d,.]*/g) || []).slice(0, 2).join(" ");
+      msg = `${lead} ${nums}`.trim();
+      if (!msg) return;
+    }
+    toasts.push([msg, ms]); if (!toastBusy) nextToast();
+  }
   function nextToast() {
     const el = $("toast"), item = toasts.shift();
     if (!item) { toastBusy = false; return; }
@@ -195,7 +218,12 @@
   // ---------------- HUD and language ----------------
   function hud() {
     const sub = Math.max(0, S.score * SUBSIDY_PER_POINT);
-    if (innerWidth < 560) {
+    if (SYM) {
+      const cr = n => n >= 1e7 ? "₹" + (n / 1e7).toFixed(2) + " Cr" : n >= 1e5 ? "₹" + (n / 1e5).toFixed(1) + " L" : inr(n);
+      const x = [[16, "Expert Engineer"], [10, "Chief Engineer"], [5, "Site Engineer"], [1, "Junior Engineer"]].find(([n]) => nDone(S) >= n);
+      $("stats").innerHTML = `<span>⭐ ${S.score}</span><span>💰 ${cr(S.treasury)}</span><span>🏛 ${cr(sub)}</span>` +
+        `<span>🚗 ${S.vehicles}</span><span class="gold">🔥 ${S.streak}</span><span>${RANK_ICON[x ? x[1] : "Trainee"]}</span>`;
+    } else if (innerWidth < 560) {
       const cr = n => n >= 1e7 ? "₹" + (n / 1e7).toFixed(2) + " Cr" : n >= 1e5 ? "₹" + (n / 1e5).toFixed(1) + " L" : inr(n);
       $("stats").innerHTML = `<span>⭐ ${S.score}</span><span>${cr(S.treasury)}</span><span>${t("Subsidy")} ${cr(sub)}</span>` +
         `<span>🚗 ${S.vehicles}</span><span class="gold">🔥 ${S.streak}</span>`;
@@ -209,7 +237,7 @@
     $("btn-view").textContent = S.view3d ? "2D" : "3D";
     $("btn-view").title = S.view3d ? t("Switch to 2D") : t("Switch to 3D");
     $("btn-3d").hidden = !S.view3d || view !== "class";
-    $("btn-3d").textContent = v3.shown ? t("✏️ Build (2D)") : t("🧊 3D view");
+    $("btn-3d").textContent = sym(v3.shown ? t("✏️ Build (2D)") : t("🧊 3D view"));
   }
 
   // ---------------- 2D / 3D: the choice is saved; Three.js loads only when 3D is used ----------------
@@ -295,7 +323,9 @@
   function applyLang() {
     setLang(S.lang);
     document.documentElement.lang = S.lang === "bn" ? "bn" : "en";
-    document.querySelectorAll("[data-t]").forEach(el => { el.innerHTML = t(el.dataset.t); });
+    document.querySelectorAll("[data-t]").forEach(el => {
+      el.innerHTML = !SYM ? t(el.dataset.t) : el.closest("#screen-start") ? "" : sym(t(el.dataset.t), el.dataset.t);
+    });
     hud(); buildStart();
     if (view === "world") buildMinimap();
     if (view === "class" && cur) { renderClassbar(); renderChips(); renderToolbar(); renderInfo(); renderCard(); }
@@ -317,20 +347,20 @@
 
   // ---------------- start screen ----------------
   function buildStart() {
-    const vp = $("viewpick"); vp.innerHTML = `<b>${esc(t("View:"))}</b>`;
+    const vp = $("viewpick"); vp.innerHTML = SYM ? "" : `<b>${esc(t("View:"))}</b>`;
     for (const [on, label] of [[false, "2D"], [true, "🧊 3D"]]) {
       const b = document.createElement("button"); b.textContent = label; b.classList.toggle("on", S.view3d === on);
       b.onclick = () => setView3d(on); vp.appendChild(b);
     }
     if (S.view3d) {
-      const lg = document.createElement("button"); lg.textContent = "⚡ " + t("Low graphics"); lg.classList.toggle("on", !!S.lowGfx);
+      const lg = document.createElement("button"); lg.textContent = SYM ? "⚡" : "⚡ " + t("Low graphics"); lg.classList.toggle("on", !!S.lowGfx);
       lg.title = t("Fewer effects for slow phones");
       lg.onclick = () => { S.lowGfx = !S.lowGfx; save(); buildStart(); rebuild3d(); }; vp.appendChild(lg);
     }
     const g = $("classgrid"); g.innerHTML = "";
     LV.forEach((l, k) => {
       const b = document.createElement("button");
-      b.textContent = lname(l);
+      b.textContent = classSym(l);
       b.onclick = () => { S.start = k; save(); sfx.unlock(); world.focus(l.l); show("world"); };
       g.appendChild(b);
     });
@@ -528,7 +558,7 @@
     cur = newCur({ level, info, project, design: designs[level], mat: project.materials[0], size: project.sizes[1] || project.sizes[0], preview });
     $("toolbar").hidden = preview;
     $("card").hidden = false; $("chips").hidden = false; $("btn-bank").hidden = false;
-    $("card").innerHTML = `<div class="q">${esc(t("Loading {name} questions…", { name: lname(info) }))}</div>`;
+    $("card").innerHTML = `<div class="q">${SYM ? "⏳" : esc(t("Loading {name} questions…", { name: lname(info) }))}</div>`;
     show("class");
     renderClassbar(); renderChips(); renderToolbar(); renderInfo();
     if (preview) setMsg(previewLine(level));
@@ -538,14 +568,18 @@
   }
   function renderClassbar() {
     if (cur.weekly) {
-      $("cl-name").textContent = t("Weekly challenge"); $("cl-stars").textContent = "🏆";
+      $("cl-name").textContent = SYM ? "📅" : t("Weekly challenge"); $("cl-stars").textContent = "🏆";
       $("cl-sub").textContent = `${t(cur.project.name)} · ${t(cur.project.vehicle.name)} ${(cur.project.vehicle.mass / 1000).toFixed(1)} t`;
       return;
     }
-    $("cl-name").textContent = (cur.preview ? "🔒 " : "") + lname(cur.info);
+    $("cl-name").textContent = (cur.preview ? "🔒 " : "") + classSym(cur.info);
     $("cl-stars").textContent = starText(starsOf(cur.level));
-    if (cur.preview) { $("cl-sub").textContent = previewLine(cur.level); return; }
+    if (cur.preview) { $("cl-sub").textContent = SYM ? `🔓 ${previewState(cur.level).left}` : previewLine(cur.level); return; }
     const share = openShare(cur.level);
+    if (SYM) {                                 // covered % of the bank and the bridge quiz, as numbers
+      $("cl-sub").textContent = `${share < 1 ? "½ · " : ""}📊 ${pct(coverage(cur.level))}% · 🌉 ${S.bridgeCorrect[cur.level] || 0}/${BRIDGE_STAR_GOAL}`;
+      return;
+    }
     $("cl-sub").textContent = (share < 1 ? `${t("Half open")} · ` : "") +
       `${t("Project {n}", { n: cur.project.id })}: ${t(cur.project.name)} · ` +
       t("covered {c}% of {n} questions · bridge quiz {b}/{q}", { c: pct(coverage(cur.level)), n: cur.info.n.toLocaleString("en-IN"),
@@ -559,11 +593,12 @@
     const c = $("chips"); c.innerHTML = "";
     if (cur.weekly) return;
     const subs = Object.keys(cur.info.subjects);
-    const list = [[null, t("All")]].concat(subs.includes("bridge") ? [["bridge", t("🌉 Bridge quiz")]] : [])
-      .concat(subs.filter(s => s !== "bridge").map(s => [s, sname(s)]));
+    const list = [[null, SYM ? "✳️" : t("All")]].concat(subs.includes("bridge") ? [["bridge", SYM ? "🌉" : t("🌉 Bridge quiz")]] : [])
+      .concat(subs.filter(s => s !== "bridge").map(s => [s, SYM ? (SUBJ_ICON[s] || sname(s)) : sname(s)]));
     for (const [s, label] of list) {
       const b = document.createElement("button");
       b.textContent = label + (s ? ` ${cur.info.subjects[s]}` : "");
+      if (SYM && s) b.title = sname(s);          // hover / long-press only
       if (s === "bridge") b.classList.add("bridge");
       if (s === cur.subject) b.classList.add("on");
       b.onclick = () => setSubject(s);
@@ -607,12 +642,15 @@
     if (!q) { c.innerHTML = `<div class="q">${t("No questions here yet.")}</div>`; return; }
     const v = shown(q);
     const done = S.dailyDate === today() ? Math.min(DAILY_GOAL, S.dailyCount) : 0;
-    const daily = done >= DAILY_GOAL ? t("Daily challenge done ✓") : t("Daily challenge: {a}/{b} right today", { a: done, b: DAILY_GOAL });
-    const note = getLang() === "bn" && !q.bn ? ` <small>${t("(English only)")}</small>` : "";
-    const auto = readsAloud() ? `<label><input type="checkbox" id="c-auto" ${S.autoRead ? "checked" : ""}> ${t("Auto-read")}</label>` : "";
-    c.innerHTML = `<div class="head"><span>${esc(lname(cur.info))} · ${esc(sname(q.s))} · ${t("right = +{n} parts", { n: cur.project.parts_per_correct })}${note}</span>` +
+    const daily = SYM ? (done >= DAILY_GOAL ? "📅 ✓" : `📅 ${done}/${DAILY_GOAL}`)
+      : done >= DAILY_GOAL ? t("Daily challenge done ✓") : t("Daily challenge: {a}/{b} right today", { a: done, b: DAILY_GOAL });
+    const note = getLang() === "bn" && !q.bn ? ` <small>${SYM ? "EN" : t("(English only)")}</small>` : "";
+    const auto = readsAloud() ? `<label><input type="checkbox" id="c-auto" ${S.autoRead ? "checked" : ""}> ${SYM ? "🔁" : t("Auto-read")}</label>` : "";
+    const headTxt = SYM ? `${SUBJ_ICON[q.s] || esc(sname(q.s))} · ✔ +${cur.project.parts_per_correct} 🔩`
+      : `${esc(lname(cur.info))} · ${esc(sname(q.s))} · ${t("right = +{n} parts", { n: cur.project.parts_per_correct })}`;
+    c.innerHTML = `<div class="head"><span>${headTxt}${note}</span>` +
       `<span class="daily">${daily}</span></div>` +
-      `<div class="qrow"><div class="q">${esc(v.q)}</div><span class="read"><button id="c-read">${t("🔈 Read")}</button>${auto}</span></div>` +
+      `<div class="qrow"><div class="q">${esc(v.q)}</div><span class="read"><button id="c-read">${sym(t("🔈 Read"))}</button>${auto}</span></div>` +
       `<div class="opts"></div><div class="exp" id="exp"></div>`;
     const opts = c.querySelector(".opts");
     v.o.forEach((o, k) => {
@@ -764,6 +802,15 @@
     if (!msg) { msg = cur.guide ? guideLine() : t("Physics: {s}", { s: t(p.lesson) }); cls = ""; }
     const partsTxt = cur.weekly ? `${t("Weekly challenge")} · ${d.partsUsed()}` :
       `${t("Parts {p} (+{n} per right answer)", { p: d.parts, n: p.parts_per_correct })} · ${t("par {p} parts (used {u})", { p: p.par_parts, u: d.partsUsed() })}`;
+    if (SYM) {
+      const formula = (() => { const L = String(p.lesson || ""); const k = L.lastIndexOf(": "); const f = k >= 0 ? L.slice(k + 2) : ""; return /=/.test(f) ? f.replace(/\.$/, "") : ""; })();
+      const n = cur.guide ? nextGuided() : null;
+      const line = cur.guide ? (n ? `🧭 ${cur.project.steps.indexOf(n.step) + 1}/${cur.project.steps.length} · ${MAT_ICON[n.m[2]] || ""} ${n.m[3]}` : "🧭 ✓ → 🚗") : (formula ? `📐 ${formula}` : "");
+      const parts = cur.weekly ? `📅 🔩 ${d.partsUsed()}` : `🔩 ${d.parts} (+${p.parts_per_correct}) · 🎯 ${p.par_parts} (${d.partsUsed()})`;
+      $("buildinfo").innerHTML = `<div class="parts">${parts} · 🚗 ${(p.vehicle.mass / 1000).toFixed(1)} t${p.impact !== 1 ? " · 💥 ×" + p.impact : ""} · ↔ ${p.span} m</div>` +
+        `<div class="msg">${esc(line)}</div>`;
+      return;
+    }
     $("buildinfo").innerHTML = `<div class="goal">${esc(t(p.goal))}</div>` +
       `<div class="parts">${partsTxt} · ${esc(t(p.vehicle.name))} ${(p.vehicle.mass / 1000).toFixed(1)} t` +
       `${p.impact !== 1 ? " " + t("× {n} impact", { n: p.impact }) : ""} · ${t("span {n} m", { n: p.span })}</div>` +
@@ -779,15 +826,19 @@
   function renderToolbar() {
     const tb = $("toolbar"), p = cur.project; tb.innerHTML = "";
     if (cur.preview) return;
-    const add = (label, fn, on, cls) => { const b = document.createElement("button"); b.textContent = label; b.onclick = fn; if (on) b.classList.add("on"); if (cls) b.classList.add(cls); tb.appendChild(b); return b; };
+    const add = (label, fn, on, cls) => {
+      const b = document.createElement("button");
+      b.textContent = SYM ? (sym(label, label) || label) : label; if (SYM) b.title = label;
+      b.onclick = fn; if (on) b.classList.add("on"); if (cls) b.classList.add(cls); tb.appendChild(b); return b;
+    };
     const sep = () => { const s = document.createElement("span"); s.className = "sep"; tb.appendChild(s); };
-    p.materials.forEach(m => add(matName(m), () => { cur.mat = m; renderToolbar(); }, cur.mat === m));
+    p.materials.forEach(m => add(SYM ? (MAT_ICON[m] || matName(m)) : matName(m), () => { cur.mat = m; renderToolbar(); }, cur.mat === m));
     sep();
     p.sizes.forEach(s => add(`${s} (${CAT.size_cost[s]})`, () => { cur.size = s; renderToolbar(); }, cur.size === s));
     sep();
     add(t("🗑 Delete"), () => { cur.del = !cur.del; cur.forces = false; cur.sel = null; setMsg(cur.del ? t("Delete mode: tap a member you built to remove it (parts come back).") : ""); renderToolbar(); }, cur.del);
     add(t("↶ Undo"), undo);
-    add(t("Clear"), () => { if (!busy()) { cur.design.clear(); cur.sel = null; setMsg(t("Cleared - all parts returned.")); edited(); } });
+    add(SYM ? "🧹" : t("Clear"), () => { if (!busy()) { cur.design.clear(); cur.sel = null; setMsg(t("Cleared - all parts returned.")); edited(); } });
     sep();
     add(t("🔍 Forces"), () => { cur.forces = !cur.forces; cur.del = false; cur.sel = null; cur.fj = null; setMsg(cur.forces ? t("Forces mode: tap a joint to see the pushes and pulls on it.") : ""); renderToolbar(); }, cur.forces);
     add(t("💡 Hint"), hint);
