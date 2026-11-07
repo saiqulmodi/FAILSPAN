@@ -120,6 +120,36 @@ def neet_rows(level, subjects, rows, seen, counts):
     return out
 
 
+WRITTEN = None
+
+
+def written_rows(level, subjects, rows, seen, counts):
+    """Questions written fresh for both games (MODIS_BridgeWorks/banks/written), after every older row;
+    the shared gate leaves out anything already in the game or near-same to a question kept here."""
+    global WRITTEN
+    if WRITTEN is None:
+        from banks import written
+        WRITTEN = written
+        WRITTEN.items = written.load()
+    kept = {}
+    for r in rows:
+        if r:
+            kept.setdefault((level, subjects[r[0]]), []).append(r[1])
+    gate = WRITTEN.Gate(seen, kept)
+    out = []
+    for w in WRITTEN.items:
+        if w["class_level"] != level or not gate.ok(level, w["subject"], w["question"]):
+            continue
+        if w["subject"] not in subjects:
+            subjects.append(w["subject"])
+        seen.add(w["question"].strip().lower())
+        out.append([subjects.index(w["subject"]), w["question"], w["options"], w["correct_idx"], w["explanation"]])
+        counts[w["subject"]] = counts.get(w["subject"], 0) + 1
+    if out:
+        print(f"  written for both games, class {level}: {len(out)} added")
+    return out
+
+
 def main():
     qs = question_bank.merge(question_bank.load_school_bank(), question_bank.load_academy_bank())
     good = quality(qs)
@@ -151,6 +181,7 @@ def main():
                 counts[d["s"][row[0]]] = counts.get(d["s"][row[0]], 0) + 1
         if level in NEET_CLASSES:
             rows += neet_rows(level, d["s"], rows, seen, counts)
+        rows += written_rows(level, d["s"], rows, seen, counts)
         d["q"] = rows
         with open(path, "w", encoding="utf-8") as f:
             json.dump(d, f, ensure_ascii=False, separators=(",", ":"))
