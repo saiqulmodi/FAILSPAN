@@ -616,16 +616,18 @@
                        return { head: w.slice(0, 5).join(" "), set: new Set(w) }; };
     const alike = (a, b) => {
       if (a.head && a.head === b.head) return true;
+      if (Math.min(a.set.size, b.set.size) < 0.5 * Math.max(a.set.size, b.set.size)) return false;   // can't share half
       let both = 0; a.set.forEach(x => { if (b.set.has(x)) both++; });
       const any = a.set.size + b.set.size - both;
       return any > 0 && both / any >= 0.5;
     };
+    const sigs = new Map(rest.map(q => [q, sig(q)]));   // worked out once per question (phones stay fast)
     const out = [], recent = [];
     while (rest.length) {
       let k = -1;
-      for (let j = 0; j < Math.min(300, rest.length) && k < 0; j++) { const s = sig(rest[j]); if (!recent.some(r => alike(s, r))) k = j; }
+      for (let j = 0; j < Math.min(300, rest.length) && k < 0; j++) { const s = sigs.get(rest[j]); if (!recent.some(r => alike(s, r))) k = j; }
       if (k < 0) k = 0;
-      const q = rest.splice(k, 1)[0]; out.push(q); recent.push(sig(q)); if (recent.length > 10) recent.shift();
+      const q = rest.splice(k, 1)[0]; out.push(q); recent.push(sigs.get(q)); if (recent.length > 10) recent.shift();
     }
     return out;
   }
