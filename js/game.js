@@ -119,7 +119,8 @@
   const levelN = level => LV[idxOf(level)].n;
   function bits(level) {
     if (!DONE[level]) {
-      const b = new Uint8Array(Math.ceil(levelN(level) / 8)), saved = S.done[level];
+      // sized by row numbers, which stay fixed where a look-alike or another class's question is left out
+      const b = new Uint8Array(Math.ceil((LV[idxOf(level)].rows || levelN(level)) / 8)), saved = S.done[level];
       if (saved) { try { const raw = atob(saved); for (let i = 0; i < Math.min(raw.length, b.length); i++) b[i] = raw.charCodeAt(i); } catch (e) {} }
       DONE[level] = b;
     }
@@ -540,7 +541,7 @@
   async function loadLevel(level) {
     if (!QCACHE[level]) {
       const d = await (await fetch(`data/q/${level}.json`)).json();
-      QCACHE[level] = d.q.map((row, i) => ({ i, s: d.s[row[0]], q: row[1], o: row[2], a: row[3], e: row[4], bn: row[5] || null }));
+      QCACHE[level] = d.q.map((row, i) => row && ({ i, s: d.s[row[0]], q: row[1], o: row[2], a: row[3], e: row[4], bn: row[5] || null })).filter(Boolean);
     }
     return QCACHE[level];
   }
@@ -606,16 +607,25 @@
       c.appendChild(b);
     }
   }
-  // random order, keeping look-alike questions (same first words) apart
+  // random order; nothing may look like any of the last 10 shown
   function spread(items) {
     const rest = items.slice();
     for (let k = rest.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [rest[k], rest[j]] = [rest[j], rest[k]]; }
-    const sig = q => q.q.toLowerCase().replace(/[^a-z\s]/g, " ").split(/\s+/).filter(Boolean).slice(0, 5).join(" ");
+    // look-alike = same first five words, or half of the words shared (numbers ignored), as in BridgeWorks
+    const sig = q => { const w = q.q.toLowerCase().replace(/[^a-z\s]/g, " ").split(/\s+/).filter(Boolean);
+                       return { head: w.slice(0, 5).join(" "), set: new Set(w) }; };
+    const alike = (a, b) => {
+      if (a.head && a.head === b.head) return true;
+      let both = 0; a.set.forEach(x => { if (b.set.has(x)) both++; });
+      const any = a.set.size + b.set.size - both;
+      return any > 0 && both / any >= 0.5;
+    };
     const out = [], recent = [];
     while (rest.length) {
-      let k = rest.slice(0, 300).findIndex(q => !recent.includes(sig(q)));
+      let k = -1;
+      for (let j = 0; j < Math.min(300, rest.length) && k < 0; j++) { const s = sig(rest[j]); if (!recent.some(r => alike(s, r))) k = j; }
       if (k < 0) k = 0;
-      const q = rest.splice(k, 1)[0]; out.push(q); recent.push(sig(q)); if (recent.length > 6) recent.shift();
+      const q = rest.splice(k, 1)[0]; out.push(q); recent.push(sig(q)); if (recent.length > 10) recent.shift();
     }
     return out;
   }
@@ -1079,9 +1089,10 @@
   function openBank() {
     if (!cur || cur.weekly || !cur.pool) return;
     const per = 5; let page = 0;
-    const pages = () => Math.max(1, Math.ceil(cur.pool.length / per));
+    const list = spread(cur.pool);              // random order, no look-alikes next to each other
+    const pages = () => Math.max(1, Math.ceil(list.length / per));
     const draw = () => {
-      const items = cur.pool.slice(page * per, page * per + per);
+      const items = list.slice(page * per, page * per + per);
       $("m-body").innerHTML = items.map((q, k) => { const v = shown(q); return `<div class="bankitem"><div class="bq">${page * per + k + 1}. ${SYM ? (SUBJ_ICON[q.s] || "") : `[${esc(sname(q.s))}]`} ${esc(v.q)}</div>
         <ol type="A">${v.o.map((o, i) => `<li data-i="${i}" data-a="${q.a}">${esc(o)}</li>`).join("")}</ol>
         <div class="be" hidden>${SYM ? `✔ ${esc(v.o[q.a])}` : esc(t("Answer: {a}", { a: v.o[q.a] }))} · ${esc(v.e)}</div></div>`; }).join("");
