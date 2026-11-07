@@ -187,7 +187,8 @@ def main():
             json.dump(d, f, ensure_ascii=False, separators=(",", ":"))
         info["n"] = sum(counts.values())
         info["rows"] = len(rows)
-        info["subjects"] = {s: counts[s] for s in info["subjects"] if s in counts}
+        order = list(info["subjects"]) + [s for s in counts if s not in info["subjects"]]   # a new subject gets its own chip
+        info["subjects"] = {s: counts[s] for s in order if s in counts}
         total += info["n"]
         print(f"class {level}: {info['n']} of {len(rows)} kept")
     with open(lv_path, "w", encoding="utf-8") as f:
