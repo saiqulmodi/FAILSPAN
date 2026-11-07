@@ -1210,6 +1210,11 @@
   // ---------------- buttons, keys, loop ----------------
   $("btn-back").onclick = () => { save(); show("world"); if (!cur.weekly) world.focus(cur.level); };
   $("btn-bank").onclick = openBank;
+  // the other game (FAILSPAN 3D <-> BridgeWorks 2D) on the player's demand; each keeps its own progress
+  $("btn-other").onclick = () => {
+    const url = /stratos/.test(location.hostname) ? "/play/saiqulmodi-bridge-genius/" : "https://saiqulmodi.github.io/MODIS_BridgeWorks/";
+    try { window.top.location.href = url; } catch (e) { location.href = url; }
+  };
   $("btn-guide").onclick = openGuide;
   $("btn-handbook").onclick = openHandbook;
   $("btn-profile").onclick = openProfile;
