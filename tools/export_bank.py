@@ -138,6 +138,7 @@ def written_rows(level, subjects, rows, seen, counts):
     gate = WRITTEN.Gate(seen, kept)
     out = []
     for w in WRITTEN.items:
+        w = dict(w, subject=w["subject"].removesuffix("_x"))     # FAILSPAN has no chapter chips: physics_x is physics
         if w["class_level"] != level or not gate.ok(level, w["subject"], w["question"]):
             continue
         if w["subject"] not in subjects:
