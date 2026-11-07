@@ -25,6 +25,13 @@ sys.path.insert(0, BRIDGEWORKS)
 from game import question_bank  # noqa: E402
 
 DATA = os.path.join(HERE, "data")
+# 08-Nov-2026 (owner): the game starts at Class 8 and has no Biology. The full bank (every class, Biology too) is kept
+# in tools/source, unshipped, and worked out exactly as before so every row keeps its number (saved progress);
+# data/ then gets Classes 8-16 only, with each Biology row as a null row (a gap).
+SOURCE = os.path.join(HERE, "tools", "source")
+SHOWN = lambda level: level >= 8
+NO_SUBJECT = {"biology", "biology_x"}
+PROJECT = {8: 1, 9: 2, 10: 3, 11: 4, 12: 5}      # Classes 8-12 one bridge project each; NIT, IIT, BE, Expert the hardest
 CAP = 2                         # classes 1-10 and Expert, same as BridgeWorks
 CAP_HIGH = int(os.environ.get("CAP_HIGH", 4))
 HIGH = {11, 12, 13, 14, 15}
@@ -160,13 +167,13 @@ def main():
             if q["class_level"] == level:
                 owner.setdefault(q["question"].strip().lower(), level)
     seen = set(owner)                         # every question text already in the game (any class)
-    lv_path = os.path.join(DATA, "levels.json")
+    lv_path = os.path.join(SOURCE, "levels.json")
     with open(lv_path, encoding="utf-8") as f:
         lv = json.load(f)
     total = 0
     for info in lv["levels"]:
         level = info["l"]
-        path = os.path.join(DATA, "q", f"{level}.json")
+        path = os.path.join(SOURCE, "q", f"{level}.json")
         with open(path, encoding="utf-8") as f:
             d = json.load(f)
         mine = [q for q in qs if q["class_level"] == level and q["correct_idx"] < 4]
@@ -194,7 +201,31 @@ def main():
         print(f"class {level}: {info['n']} of {len(rows)} kept")
     with open(lv_path, "w", encoding="utf-8") as f:
         json.dump(lv, f, ensure_ascii=False, separators=(",", ":"))
-    print("questions:", total)
+    print("questions (full source):", total)
+    ship(lv)
+
+
+def ship(lv):
+    """data/: Classes 8-16, Biology rows as gaps, the class's Edge tab first."""
+    out, total = [], 0
+    for info in lv["levels"]:
+        level = info["l"]
+        if not SHOWN(level):
+            if os.path.exists(os.path.join(DATA, "q", f"{level}.json")):
+                os.remove(os.path.join(DATA, "q", f"{level}.json"))
+            continue
+        with open(os.path.join(SOURCE, "q", f"{level}.json"), encoding="utf-8") as f:
+            d = json.load(f)
+        d["q"] = [None if r is None or d["s"][r[0]] in NO_SUBJECT else r for r in d["q"]]
+        with open(os.path.join(DATA, "q", f"{level}.json"), "w", encoding="utf-8") as f:
+            json.dump(d, f, ensure_ascii=False, separators=(",", ":"))
+        subs = {s: n for s, n in info["subjects"].items() if s not in NO_SUBJECT}
+        subs = dict(sorted(subs.items(), key=lambda kv: kv[0] != "edge"))
+        out.append(dict(info, project=PROJECT.get(level, 5), subjects=subs, n=sum(subs.values())))
+        total += out[-1]["n"]
+    with open(os.path.join(DATA, "levels.json"), "w", encoding="utf-8") as f:
+        json.dump(dict(lv, levels=out, subject_names=dict(lv["subject_names"], edge="⚡ Edge")), f, ensure_ascii=False, separators=(",", ":"))
+    print("questions shipped:", total, "in", len(out), "levels")
 
 
 if __name__ == "__main__":

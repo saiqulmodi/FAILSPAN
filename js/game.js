@@ -30,7 +30,7 @@
   const SYM = true;
   const SUBJ_ICON = { math: "➗", physics: "⚛️", chemistry: "⚗️", biology: "🧬", evs: "🌿", commercials: "🛒",
     economics: "📈", finance: "💰", geography: "🌍", general_safety: "🦺", civil: "🏗️", engineering: "⚙️",
-    computer: "💻", bridge: "🌉" };
+    computer: "💻", bridge: "🌉", edge: "⚡" };
   const MAT_ICON = { "Steel cable": "🔗", "Carbon-fibre cable": "⛓️", "Steel": "🔩", "Timber": "🪵", "Concrete": "🧱" };
   const WORD_ICON = { "Clear": "🧹", "STRESS": "📈", "All": "✳️", "2D": "2D" };
   // the leading symbol of a label ("🗑 Delete" -> "🗑", "◀ World" -> "◀"), or a symbol for a plain word
@@ -58,9 +58,19 @@
              streak: 0, lastDaily: "", dailyDate: "", dailyCount: 0, answered: 0, badges: {}, weekly: { week: -1, best: null, build: [] },
              preview: {}, done: {}, doneN: {}, view3d: false, lowGfx: false };
   }
+  // 08-Nov-2026: Classes 1-7 removed (index of "my class" moves down 7) and each of Classes 8-12 got its own
+  // bridge project; a saved build of a class whose project changed no longer fits, so only that build is cleared
+  const MOVED_PROJECT = [8, 10, 11, 12, 13, 15];
+  function migrate(s) {
+    if (s.v8 === 1) return s;
+    if (s.start >= 0) s.start = Math.max(0, s.start - 7);
+    for (const l of MOVED_PROJECT) { delete s.builds[l]; delete s.parts[l]; delete s.bestParts[l]; }
+    s.v8 = 1;
+    return s;
+  }
   function load() {
-    try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === "object") return Object.assign(fresh(), s); } catch (e) {}
-    return fresh();
+    try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === "object") return migrate(Object.assign(fresh(), s)); } catch (e) {}
+    return Object.assign(fresh(), { v8: 1 });
   }
   function save() {
     if (cur && !cur.weekly) { S.builds[cur.level] = cur.design.members; S.parts[cur.level] = cur.design.parts; }
@@ -194,8 +204,8 @@
     ["first", "🎯", "First Answer", s => s.answered >= 1],
     ["bridge1", "👷", "Junior Engineer: first bridge", s => nDone(s) >= 1],
     ["bridge5", "🦺", "Site Engineer: 5 bridges", s => nDone(s) >= 5],
-    ["bridge10", "🏗️", "Chief Engineer: 10 bridges", s => nDone(s) >= 10],
-    ["bridge16", "🏛️", "Expert Engineer: all 16 bridges", s => nDone(s) >= 16],
+    ["bridge10", "🏗️", "Chief Engineer: 7 bridges", s => nDone(s) >= 7],
+    ["bridge16", "🏛️", "Expert Engineer: all 9 bridges", s => LV.length > 0 && nDone(s) >= LV.length],
     ["q100", "📚", "Quiz Ace: 100 right answers", s => totalCorrect(s) >= 100],
     ["q1000", "🎓", "Scholar: 1,000 right answers", s => totalCorrect(s) >= 1000],
     ["streak3", "🔥", "3-day streak", s => s.streak >= 3],
@@ -205,10 +215,10 @@
     ["thrifty", "🪙", "Thrifty builder: pass within par parts", s => LV.some(l => s.complete[l.l] && s.bestParts[l.l] <= CAT.projects[l.project - 1].par_parts)],
     ["weekly", "🥇", "Weekly champion: pass a weekly challenge", s => s.weekly.best !== null],
   ];
-  const nDone = s => Object.values(s.complete).filter(Boolean).length;
+  const nDone = s => LV.filter(l => s.complete[l.l]).length;
   const totalCorrect = s => Object.values(s.correct).reduce((a, b) => a + b, 0);
   function title() {
-    const x = [[16, "Expert Engineer"], [10, "Chief Engineer"], [5, "Site Engineer"], [1, "Junior Engineer"]].find(([n]) => nDone(S) >= n);
+    const x = [[LV.length || 99, "Expert Engineer"], [7, "Chief Engineer"], [5, "Site Engineer"], [1, "Junior Engineer"]].find(([n]) => nDone(S) >= n);
     return t(x ? x[1] : "Trainee");
   }
   function checkBadges() {
@@ -222,7 +232,7 @@
     const sub = Math.max(0, S.score * SUBSIDY_PER_POINT);
     if (SYM) {
       const cr = n => n >= 1e7 ? "₹" + (n / 1e7).toFixed(2) + " Cr" : n >= 1e5 ? "₹" + (n / 1e5).toFixed(1) + " L" : inr(n);
-      const x = [[16, "Expert Engineer"], [10, "Chief Engineer"], [5, "Site Engineer"], [1, "Junior Engineer"]].find(([n]) => nDone(S) >= n);
+      const x = [[LV.length || 99, "Expert Engineer"], [7, "Chief Engineer"], [5, "Site Engineer"], [1, "Junior Engineer"]].find(([n]) => nDone(S) >= n);
       $("stats").innerHTML = `<span>⭐ ${S.score}</span><span>💰 ${cr(S.treasury)}</span><span>🏛 ${cr(sub)}</span>` +
         `<span>🚗 ${S.vehicles}</span><span class="gold">🔥 ${S.streak}</span><span>${RANK_ICON[x ? x[1] : "Trainee"]}</span>`;
     } else if (innerWidth < 560) {
@@ -1169,15 +1179,15 @@
     const badges = BADGES.map(([k, ic, name]) => `<div class="badge ${S.badges[k] ? "got" : ""}" title="${esc(t(name))}"><span class="ic">${S.badges[k] ? ic : "🔒"}</span>${SYM ? "" : esc(t(name))}</div>`).join("");
     const startSel = LV.map((l, k) => `<option value="${k}" ${k === S.start ? "selected" : ""}>${esc(classSym(l))}</option>`).join("");
     if (SYM) {
-      const x = [[16, "Expert Engineer"], [10, "Chief Engineer"], [5, "Site Engineer"], [1, "Junior Engineer"]].find(([n]) => nDone(S) >= n);
+      const x = [[LV.length || 99, "Expert Engineer"], [7, "Chief Engineer"], [5, "Site Engineer"], [1, "Junior Engineer"]].find(([n]) => nDone(S) >= n);
       modal(`🏅 ${RANK_ICON[x ? x[1] : "Trainee"]}`,
-        `<p style="font-size:1.15em">🌉 ${done}/16 · ⭐ ${stars}/48 · ✔ ${totalCorrect(S).toLocaleString("en-IN")} · 🏆 ${S.best} · 🔥 ${S.streak}</p>` +
+        `<p style="font-size:1.15em">🌉 ${done}/${LV.length} · ⭐ ${stars}/${LV.length * 3} · ✔ ${totalCorrect(S).toLocaleString("en-IN")} · 🏆 ${S.best} · 🔥 ${S.streak}</p>` +
         `<div class="badges">${badges}</div><p style="margin-top:14px">🏫 <select id="pf-start" style="font:inherit;padding:6px;border-radius:6px">${startSel}</select></p>`,
         [["📄", openReport], ["✔", closeModal]]);
       $("pf-start").onchange = e => { S.start = +e.target.value; save(); buildMinimap(); toast("🏫 ✔"); };
       return;
     }
-    modal(`🏅 ${esc(title())}`, `<p>${esc(t("{a} of 16 bridges built · {b} of 48 stars · {c} right answers · best score {d} · 🔥 {e}-day streak",
+    modal(`🏅 ${esc(title())}`, `<p>${esc(t("{a} of 9 bridges built · {b} of 27 stars · {c} right answers · best score {d} · 🔥 {e}-day streak",
         { a: done, b: stars, c: totalCorrect(S).toLocaleString("en-IN"), d: S.best, e: S.streak }))}</p><div class="badges">${badges}</div>
       <p style="margin-top:14px">${t("My class:")} <select id="pf-start" style="font:inherit;padding:6px;border-radius:6px">${startSel}</select>
       <small> ${t("- buildings up to your class are open.")}</small></p>
@@ -1196,11 +1206,11 @@
     const rows = reportRows(), date = new Date().toLocaleDateString(getLang() === "bn" ? "bn-IN" : "en-IN");
     const head = [t("Building"), t("Stars"), t("Bridge"), t("Right answers"), t("Covered"), t("Bridge quiz"), t("Best parts")];
     const html = `<p><b>${t("Title")}:</b> ${esc(title())} · <b>${t("Streak")}:</b> ${S.streak} · <b>${t("Total right answers")}:</b> ${totalCorrect(S)} ·
-      <b>${t("Bridges built")}:</b> ${nDone(S)}/16 · <b>${t("Score")}:</b> ${S.score}</p>
+      <b>${t("Bridges built")}:</b> ${nDone(S)}/${LV.length} · <b>${t("Score")}:</b> ${S.score}</p>
       <table class="report"><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr>${rows.map(r => `<tr><td>${esc(r.name)}</td><td class="stars">${starText(r.stars)}</td>
       <td>${r.bridge}</td><td>${r.right}</td><td>${r.mastery}</td><td>${r.quiz}/${BRIDGE_STAR_GOAL}</td><td>${r.parts}</td></tr>`).join("")}</table>`;
     modal(esc(t("📄 Report card - {d}", { d: date })), html, [[t("🖨 Print / Save PDF"), () => window.print()], [t("📋 Copy text"), () => {
-      const txt = [`FAILSPAN - ${date}`, `${t("Title")}: ${title()} | ${t("Streak")}: ${S.streak} | ${t("Total right answers")}: ${totalCorrect(S)} | ${t("Bridges built")}: ${nDone(S)}/16`,
+      const txt = [`FAILSPAN - ${date}`, `${t("Title")}: ${title()} | ${t("Streak")}: ${S.streak} | ${t("Total right answers")}: ${totalCorrect(S)} | ${t("Bridges built")}: ${nDone(S)}/${LV.length}`,
         head.join("\t")].concat(rows.map(r => [r.name, starText(r.stars), r.bridge, r.right, r.mastery, `${r.quiz}/${BRIDGE_STAR_GOAL}`, r.parts].join("\t"))).join("\n");
       try { navigator.clipboard.writeText(txt).then(() => toast(t("Copied")), () => {}); } catch (e) {}
     }]]);

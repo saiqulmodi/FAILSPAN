@@ -78,8 +78,8 @@
     "📘 Engineering Handbook": "📘 প্রকৌশল হ্যান্ডবুক", "Search both languages…": "দুই ভাষাতেই খোঁজো…", "No matches.": "কিছু মেলেনি।",
     "200 answers from the classic FAILSPAN levels: the physics of trusses, beams, wind, quakes and money.":
       "পুরোনো FAILSPAN লেভেলের ২০০টি উত্তর: ট্রাস, বিম, বাতাস, ভূমিকম্প আর টাকার পদার্থবিজ্ঞান।",
-    "{a} of 16 bridges built · {b} of 48 stars · {c} right answers · best score {d} · 🔥 {e}-day streak":
-      "১৬টির মধ্যে {a}টি সেতু তৈরি · ৪৮টির মধ্যে {b}টি তারা · {c}টি ঠিক উত্তর · সেরা স্কোর {d} · 🔥 {e} দিনের ধারা",
+    "{a} of 9 bridges built · {b} of 27 stars · {c} right answers · best score {d} · 🔥 {e}-day streak":
+      "৯টির মধ্যে {a}টি সেতু তৈরি · ২৭টির মধ্যে {b}টি তারা · {c}টি ঠিক উত্তর · সেরা স্কোর {d} · 🔥 {e} দিনের ধারা",
     "My class:": "আমার শ্রেণি:", "- buildings up to your class are open.": "- তোমার শ্রেণি পর্যন্ত ভবন খোলা।",
     "Done": "ঠিক আছে", "Class saved": "শ্রেণি সংরক্ষিত", "📄 Report card": "📄 রিপোর্ট কার্ড",
     "📄 Report card - {d}": "📄 রিপোর্ট কার্ড - {d}", "Building": "ভবন", "Stars": "তারা", "Bridge": "সেতু", "Right answers": "ঠিক উত্তর",
@@ -119,14 +119,14 @@
     "The way to your destination": "তোমার গন্তব্যের পথ", "Skip ▶": "এড়িয়ে যাও ▶",
     // ---- badges ----
     "First Answer": "প্রথম উত্তর", "Junior Engineer: first bridge": "জুনিয়র ইঞ্জিনিয়ার: প্রথম সেতু",
-    "Site Engineer: 5 bridges": "সাইট ইঞ্জিনিয়ার: ৫টি সেতু", "Chief Engineer: 10 bridges": "চিফ ইঞ্জিনিয়ার: ১০টি সেতু",
-    "Expert Engineer: all 16 bridges": "বিশেষজ্ঞ প্রকৌশলী: ১৬টি সেতুই", "Quiz Ace: 100 right answers": "কুইজ তারকা: ১০০টি ঠিক উত্তর",
+    "Site Engineer: 5 bridges": "সাইট ইঞ্জিনিয়ার: ৫টি সেতু", "Chief Engineer: 7 bridges": "চিফ ইঞ্জিনিয়ার: ৭টি সেতু",
+    "Expert Engineer: all 9 bridges": "বিশেষজ্ঞ প্রকৌশলী: ৯টি সেতুই", "Quiz Ace: 100 right answers": "কুইজ তারকা: ১০০টি ঠিক উত্তর",
     "Scholar: 1,000 right answers": "পণ্ডিত: ১,০০০টি ঠিক উত্তর", "3-day streak": "৩ দিনের ধারা", "7-day streak": "৭ দিনের ধারা",
     "30-day streak": "৩০ দিনের ধারা", "Perfect bridge: 3 stars": "নিখুঁত সেতু: ৩ তারা",
     "Thrifty builder: pass within par parts": "মিতব্যয়ী নির্মাতা: লক্ষ্যের মধ্যে পাস", "Weekly champion: pass a weekly challenge": "সাপ্তাহিক চ্যাম্পিয়ন: সাপ্তাহিক চ্যালেঞ্জ পাস",
     // ---- level, subject, material, vehicle and project names ----
     "Class {n}": "শ্রেণি {n}", "BE": "বিই", "NIT": "এনআইটি", "IIT": "আইআইটি",
-    "Math": "গণিত", "Physics": "পদার্থবিজ্ঞান", "Chemistry": "রসায়ন", "Biology": "জীববিজ্ঞান", "EVS": "পরিবেশ পরিচিতি",
+    "⚡ Edge": "⚡ এজ", "Math": "গণিত", "Physics": "পদার্থবিজ্ঞান", "Chemistry": "রসায়ন", "Biology": "জীববিজ্ঞান", "EVS": "পরিবেশ পরিচিতি",
     "Commerce": "বাণিজ্য", "Economics": "অর্থনীতি", "Finance": "অর্থসংস্থান", "Geography": "ভূগোল", "Safety": "নিরাপত্তা",
     "Civil Engg": "পুর প্রকৌশল", "Engineering": "প্রকৌশল", "Computer": "কম্পিউটার",
     "Steel cable": "ইস্পাতের তার", "Carbon cable": "কার্বন তার", "Steel beam": "ইস্পাতের বিম", "Timber beam": "কাঠের বিম",
