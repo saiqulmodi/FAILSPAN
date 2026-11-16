@@ -93,6 +93,8 @@
     "none yet": "এখনো নেই", "Start the challenge": "চ্যালেঞ্জ শুরু করো", "Weekly challenge": "সাপ্তাহিক চ্যালেঞ্জ",
     "Challenge passed with {u} parts! Your best this week: {b} parts.": "চ্যালেঞ্জ পাস {u} যন্ত্রাংশে! এই সপ্তাহে তোমার সেরা: {b} যন্ত্রাংশ।",
     "New personal best!": "নতুন ব্যক্তিগত রেকর্ড!",
+    "Your weekly bests": "তোমার সাপ্তাহিক সেরা", "This week: {b} parts": "এই সপ্তাহ: {b} যন্ত্রাংশ",
+    "Week {w}: {b} parts": "সপ্তাহ {w}: {b} যন্ত্রাংশ", "New best ever: {b} parts!": "সর্বকালের নতুন সেরা: {b} যন্ত্রাংশ!",
     "Weekly challenge: parts are free. Build with as few parts as you can, then Test.": "সাপ্তাহিক চ্যালেঞ্জ: যন্ত্রাংশ বিনামূল্যে। যত কম পারো যন্ত্রাংশে বানাও, তারপর পরীক্ষা করো।",
     "New badge: {s}": "নতুন ব্যাজ: {s}",
     // ---- locked buildings: 5 free questions, then wait or clear the class before ----
