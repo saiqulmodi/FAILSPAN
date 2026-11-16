@@ -13,7 +13,8 @@
   // Stratos hooks: ads/analytics are not live; these stay empty / free.
   let startedAt = 0;  // level_start starts the clock; level_complete / game_over carry `seconds` played
   function track(name, details) { try { details = Object.assign({}, details); if (name === "level_start") startedAt = Date.now(); else if ((name === "level_complete" || name === "game_over") && startedAt && details.seconds == null) details.seconds = Math.round((Date.now() - startedAt) / 1000); var S = window.Stratos || parent.Stratos; if (S) S.track(name, details); } catch (e) {} }
-  function offerReward(onDone) { onDone(); }
+  // Stratos Coins: offer(kind) shows price + balance, onDone runs only after paying; free when no coins are around.
+  function offerReward(onDone, kind) { try { var S = window.Stratos || parent.Stratos; if (S && S.coins && S.coins.offer) { S.coins.offer(kind || 'hint', onDone); return; } } catch (e) {} onDone(); }
 
   const CORRECT_CASH = 10000, CORRECT_PTS = 4, WRONG_CASH = 1000, WRONG_PTS = 1, SUBSIDY_PER_POINT = 2500;
   const PREVIEW_QS = 5, PREVIEW_HOURS = 5;   // a locked building lets you try 5 questions every 5 hours
@@ -55,7 +56,7 @@
   function fresh() {
     return { start: -1, score: 0, best: 0, treasury: 50000000, vehicles: 0, muted: false, lang: "en", autoRead: true,
              correct: {}, bridgeCorrect: {}, complete: {}, bestParts: {}, builds: {}, parts: {},
-             streak: 0, lastDaily: "", dailyDate: "", dailyCount: 0, answered: 0, badges: {}, weekly: { week: -1, best: null, build: [] },
+             streak: 0, lastDaily: "", dailyDate: "", dailyCount: 0, answered: 0, badges: {}, weekly: { week: -1, best: null, build: [] }, weeklyHist: {},
              preview: {}, done: {}, doneN: {}, view3d: false, lowGfx: false };
   }
   // 08-Nov-2026: Classes 1-7 removed (index of "my class" moves down 7) and each of Classes 8-12 got its own
@@ -759,11 +760,31 @@
   }
   function openWeekly() {
     const { w, p, factor } = weeklySpec();
-    if (S.weekly.week !== w) S.weekly = { week: w, best: null, build: [] };
+    newWeek(w);
     modal(esc(t("🏆 Weekly Bridge Challenge - week {w}", { w: w % 52 + 1 })),
       `<p>${esc(t("This week everyone builds the same bridge: {p} with a {v} {m} t ({x} × heavier than normal). Parts are free - the fewest parts that pass wins. Your best this week: {b}.",
-        { p: t(p.name), v: t(p.vehicle.name), m: (p.vehicle.mass / 1000).toFixed(1), x: factor, b: S.weekly.best === null ? t("none yet") : S.weekly.best }))}</p>`,
+        { p: t(p.name), v: t(p.vehicle.name), m: (p.vehicle.mass / 1000).toFixed(1), x: factor, b: S.weekly.best === null ? t("none yet") : S.weekly.best }))}</p>` + weeklyBoard(),
       [[t("Start the challenge"), () => { closeModal(); enterWeekly(); }]]);
+  }
+  // Weekly bests on this device (kids game: nothing leaves the device, so no shared leaderboard). A new week files
+  // last week's best into the history; the board shows this week, the last weeks and a 🥇 on the best ever.
+  function newWeek(w) {
+    if (S.weekly.week === w) return;
+    S.weeklyHist = S.weeklyHist || {};
+    if (S.weekly.best !== null && S.weekly.week >= 0) S.weeklyHist[S.weekly.week] = S.weekly.best;
+    S.weekly = { week: w, best: null, build: [] };
+  }
+  function bestEver() {
+    const all = Object.values(S.weeklyHist || {}).concat(S.weekly.best === null ? [] : [S.weekly.best]);
+    return all.length ? Math.min(...all) : null;
+  }
+  function weeklyBoard() {
+    const hist = Object.entries(S.weeklyHist || {}).map(([k, v]) => [Number(k), v]).sort((a, b) => b[0] - a[0]).slice(0, 6);
+    if (!hist.length && S.weekly.best === null) return "";
+    const top = bestEver(), medal = (v) => (v === top ? " 🥇" : "");
+    const rows = (S.weekly.best === null ? "" : `<li><b>${esc(t("This week: {b} parts", { b: S.weekly.best }))}</b>${medal(S.weekly.best)}</li>`)
+      + hist.map(([k, v]) => `<li>${esc(t("Week {w}: {b} parts", { w: k % 52 + 1, b: v }))}${medal(v)}</li>`).join("");
+    return `<p><b>📅 ${esc(t("Your weekly bests"))}</b></p><ul>${rows}</ul>`;
   }
   function enterWeekly() {
     const { w, p } = weeklySpec(), key = "weekly" + w;
@@ -959,12 +980,14 @@
   function finishTest(ok, why) {
     const p = cur.project, lvl = cur.level, used = cur.design.partsUsed(), worstPct = (cur.test.worst * 100).toFixed(0);
     if (ok && cur.weekly) {
+      const everBefore = bestEver();
       const better = S.weekly.best === null || used < S.weekly.best;
       if (better) S.weekly.best = used;
+      const newEver = everBefore !== null && used < everBefore;
       S.vehicles++; sfx.pass(); track("level_complete", { level: "weekly", parts: used });
       setMsg(t("Challenge passed with {u} parts! Your best this week: {b} parts.", { u: used, b: S.weekly.best }), "good");
       modal("🏆 " + esc(t("Weekly challenge")), `<p>${esc(t("Challenge passed with {u} parts! Your best this week: {b} parts.", { u: used, b: S.weekly.best }))}</p>` +
-        (better ? `<p><b>${t("New personal best!")}</b></p>` : ""), [[t("Back to the road"), () => { closeModal(); show("world"); }], [t("Keep improving"), closeModal]]);
+        (better ? `<p><b>${t("New personal best!")}</b></p>` : "") + (newEver ? `<p><b>🥇 ${esc(t("New best ever: {b} parts!", { b: used }))}</b></p>` : "") + weeklyBoard(), [[t("Back to the road"), () => { closeModal(); show("world"); }], [t("Keep improving"), closeModal]]);
     } else if (ok) {
       S.complete[lvl] = true; S.vehicles++;
       S.bestParts[lvl] = Math.min(S.bestParts[lvl] ?? Infinity, used);
@@ -987,7 +1010,7 @@
       after3d(() => modal(t("💥 The bridge failed"), `<p><b>${esc(why)}</b></p><p>${t(member ? "The broken member is dark red. Hover or tap any member to read its force."
         : "Nothing broke - the frame could move like a mechanism, so it needs more members.")}</p><p>${esc(t(p.hints[0]))}</p>`,
         [[t("Second chance: show the next guided member"), () => { closeModal(); track("reward_offered", { kind: "fix" });
-          offerReward(() => { track("reward_taken", { kind: "fix" }); cur.guide = true; $("btn-guide").classList.add("on"); setMsg(n ? guideLine() : t("Your design is complete - make the red member bigger.")); }); }],
+          offerReward(() => { track("reward_taken", { kind: "fix" }); cur.guide = true; $("btn-guide").classList.add("on"); setMsg(n ? guideLine() : t("Your design is complete - make the red member bigger.")); }, "continue"); }],
          [t("Try again"), closeModal]]));
     }
     checkBadges(); save(); hud(); renderClassbar(); buildMinimap();
