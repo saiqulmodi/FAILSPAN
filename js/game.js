@@ -681,7 +681,7 @@
     const done = S.dailyDate === today() ? Math.min(DAILY_GOAL, S.dailyCount) : 0;
     const daily = SYM ? (done >= DAILY_GOAL ? "ðŸ“… âœ“" : `ðŸ“… ${done}/${DAILY_GOAL}`)
       : done >= DAILY_GOAL ? t("Daily challenge done âœ“") : t("Daily challenge: {a}/{b} right today", { a: done, b: DAILY_GOAL });
-    const note = (q.isPrereq ? ` <small style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-weight:600">💡 Guru-Sutra Warm-up (Class 8–9)</small>` : "") + (getLang() === "bn" && !q.bn ? ` <small>${SYM ? "EN" : t("(English only)")}</small>` : "");
+    const note = (q.isPrereq ? ` <small style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-weight:600">💡 Foundation Warm-up (Class 8–9)</small>` : "") + (getLang() === "bn" && !q.bn ? ` <small>${SYM ? "EN" : t("(English only)")}</small>` : "");
     const auto = readsAloud() ? `<label><input type="checkbox" id="c-auto" ${S.autoRead ? "checked" : ""}> ${SYM ? "ðŸ”" : t("Auto-read")}</label>` : "";
     const headTxt = SYM ? `${SUBJ_ICON[q.s] || esc(sname(q.s))} Â· âœ” +${cur.project.parts_per_correct} ðŸ”©`
       : `${esc(lname(cur.info))} Â· ${esc(sname(q.s))} Â· ${t("right = +{n} parts", { n: cur.project.parts_per_correct })}`;
