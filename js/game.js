@@ -30,20 +30,20 @@
   // ---- Symbols only, no write-up (user, 01-Nov-2026, all games): buttons keep their symbol, words go. The
   // questions and answers (the lesson), the physics formula, numbers and the language names stay.
   const SYM = true;
-  const SUBJ_ICON = { math: "âž—", physics: "âš›ï¸", chemistry: "âš—ï¸", biology: "ðŸ§¬", evs: "ðŸŒ¿", commercials: "ðŸ›’",
-    economics: "ðŸ“ˆ", finance: "ðŸ’°", geography: "ðŸŒ", general_safety: "ðŸ¦º", civil: "ðŸ—ï¸", engineering: "âš™ï¸",
-    computer: "ðŸ’»", bridge: "ðŸŒ‰", edge: "âš¡" };
-  const MAT_ICON = { "Steel cable": "ðŸ”—", "Carbon-fibre cable": "â›“ï¸", "Steel": "ðŸ”©", "Timber": "ðŸªµ", "Concrete": "ðŸ§±" };
-  const WORD_ICON = { "Clear": "ðŸ§¹", "STRESS": "ðŸ“ˆ", "All": "âœ³ï¸", "2D": "2D" };
-  // the leading symbol of a label ("ðŸ—‘ Delete" -> "ðŸ—‘", "â—€ World" -> "â—€"), or a symbol for a plain word
+  const SUBJ_ICON = { math: "➗", physics: "⚛️", chemistry: "⚗️", biology: "🧬", evs: "🌿", commercials: "🛒",
+    economics: "📈", finance: "💰", geography: "🌍", general_safety: "🦺", civil: "🏗️", engineering: "⚙️",
+    computer: "💻", bridge: "🌉", edge: "⚡" };
+  const MAT_ICON = { "Steel cable": "🔗", "Carbon-fibre cable": "⛓️", "Steel": "🔩", "Timber": "🪵", "Concrete": "🧱" };
+  const WORD_ICON = { "Clear": "🧹", "STRESS": "📈", "All": "✳️", "2D": "2D" };
+  // the leading symbol of a label ("🗑 Delete" -> "🗑", "◀ World" -> "◀"), or a symbol for a plain word
   const sym = (label, word) => {
     if (!SYM) return label;
     const m = String(label).match(/^[^\p{L}\p{N}]+/u);
     return m && m[0].trim() ? m[0].trim() : (WORD_ICON[word || label] || "");
   };
-  const RANK_ICON = { "Expert Engineer": "ðŸ†", "Chief Engineer": "ðŸ¥‡", "Site Engineer": "ðŸ¥ˆ", "Junior Engineer": "ðŸ¥‰", "Trainee": "ðŸ”°" };
-  const classSym = info => !SYM ? lname(info) : /^Class \d+$/.test(info.name) ? "ðŸ« " + info.name.slice(6)
-    : /^Expert/.test(info.name) ? "ðŸ†" : lname(info);   // BE / NIT / IIT stay as they are
+  const RANK_ICON = { "Expert Engineer": "🏆", "Chief Engineer": "🥇", "Site Engineer": "🥈", "Junior Engineer": "🥉", "Trainee": "🔰" };
+  const classSym = info => !SYM ? lname(info) : /^Class \d+$/.test(info.name) ? "🏫 " + info.name.slice(6)
+    : /^Expert/.test(info.name) ? "🏆" : lname(info);   // BE / NIT / IIT stay as they are
 
   let LV = [], NAMES = {}, CAT = null, HANDBOOK = null, BOOKS = null;
   const QCACHE = {};
@@ -118,7 +118,7 @@
   function stopSpeech() { try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {} }
 
   // ---------------- helpers ----------------
-  const inr = n => "â‚¹" + Math.round(n).toLocaleString("en-IN");
+  const inr = n => "₹" + Math.round(n).toLocaleString("en-IN");
   const order = () => LV.map(l => l.l);
   const idxOf = level => order().indexOf(level);
   const lname = info => /^Class \d+$/.test(info.name) ? t("Class {n}", { n: info.name.slice(6) }) : t(info.name);
@@ -180,13 +180,13 @@
     return (S.complete[level] ? 1 : 0) + (S.complete[level] && S.bestParts[level] <= p.par_parts ? 1 : 0)
          + ((S.bridgeCorrect[level] || 0) >= BRIDGE_STAR_GOAL ? 1 : 0);
   }
-  const starText = n => "â˜…".repeat(n) + "â˜†".repeat(3 - n);
+  const starText = n => "★".repeat(n) + "☆".repeat(3 - n);
   // messages queue up and show one after another, so none is missed
   const toasts = [];
   let toastBusy = false;
   function toast(msg, ms = 2200) {
-    if (SYM) {                                 // keep the leading symbol and any numbers ("ðŸ”¥ ... 3-day ... +5" -> "ðŸ”¥ 3 +5")
-      const lead = sym(msg), nums = (String(msg).replace(/<[^>]*>/g, "").match(/[+âˆ’-]?\d[\d,.]*/g) || []).slice(0, 2).join(" ");
+    if (SYM) {                                 // keep the leading symbol and any numbers ("🔥 ... 3-day ... +5" -> "🔥 3 +5")
+      const lead = sym(msg), nums = (String(msg).replace(/<[^>]*>/g, "").match(/[+−-]?\d[\d,.]*/g) || []).slice(0, 2).join(" ");
       msg = `${lead} ${nums}`.trim();
       if (!msg) return;
     }
@@ -205,19 +205,19 @@
 
   // ---------------- badges ----------------
   const BADGES = [
-    ["first", "ðŸŽ¯", "First Answer", s => s.answered >= 1],
-    ["bridge1", "ðŸ‘·", "Junior Engineer: first bridge", s => nDone(s) >= 1],
-    ["bridge5", "ðŸ¦º", "Site Engineer: 5 bridges", s => nDone(s) >= 5],
-    ["bridge10", "ðŸ—ï¸", "Chief Engineer: 7 bridges", s => nDone(s) >= 7],
-    ["bridge16", "ðŸ›ï¸", "Expert Engineer: all 9 bridges", s => LV.length > 0 && nDone(s) >= LV.length],
-    ["q100", "ðŸ“š", "Quiz Ace: 100 right answers", s => totalCorrect(s) >= 100],
-    ["q1000", "ðŸŽ“", "Scholar: 1,000 right answers", s => totalCorrect(s) >= 1000],
-    ["streak3", "ðŸ”¥", "3-day streak", s => s.streak >= 3],
-    ["streak7", "ðŸŒŸ", "7-day streak", s => s.streak >= 7],
-    ["streak30", "ðŸ†", "30-day streak", s => s.streak >= 30],
-    ["perfect", "ðŸ’Ž", "Perfect bridge: 3 stars", s => LV.some(l => starsOf(l.l) === 3)],
-    ["thrifty", "ðŸª™", "Thrifty builder: pass within par parts", s => LV.some(l => s.complete[l.l] && s.bestParts[l.l] <= CAT.projects[l.project - 1].par_parts)],
-    ["weekly", "ðŸ¥‡", "Weekly champion: pass a weekly challenge", s => s.weekly.best !== null],
+    ["first", "🎯", "First Answer", s => s.answered >= 1],
+    ["bridge1", "👷", "Junior Engineer: first bridge", s => nDone(s) >= 1],
+    ["bridge5", "🦺", "Site Engineer: 5 bridges", s => nDone(s) >= 5],
+    ["bridge10", "🏗️", "Chief Engineer: 7 bridges", s => nDone(s) >= 7],
+    ["bridge16", "🏛️", "Expert Engineer: all 9 bridges", s => LV.length > 0 && nDone(s) >= LV.length],
+    ["q100", "📚", "Quiz Ace: 100 right answers", s => totalCorrect(s) >= 100],
+    ["q1000", "🎓", "Scholar: 1,000 right answers", s => totalCorrect(s) >= 1000],
+    ["streak3", "🔥", "3-day streak", s => s.streak >= 3],
+    ["streak7", "🌟", "7-day streak", s => s.streak >= 7],
+    ["streak30", "🏆", "30-day streak", s => s.streak >= 30],
+    ["perfect", "💎", "Perfect bridge: 3 stars", s => LV.some(l => starsOf(l.l) === 3)],
+    ["thrifty", "🪙", "Thrifty builder: pass within par parts", s => LV.some(l => s.complete[l.l] && s.bestParts[l.l] <= CAT.projects[l.project - 1].par_parts)],
+    ["weekly", "🥇", "Weekly champion: pass a weekly challenge", s => s.weekly.best !== null],
   ];
   const nDone = s => LV.filter(l => s.complete[l.l]).length;
   const totalCorrect = s => Object.values(s.correct).reduce((a, b) => a + b, 0);
@@ -239,25 +239,25 @@
   function hud() {
     const sub = Math.max(0, S.score * SUBSIDY_PER_POINT);
     if (SYM) {
-      const cr = n => n >= 1e7 ? "â‚¹" + (n / 1e7).toFixed(2) + " Cr" : n >= 1e5 ? "â‚¹" + (n / 1e5).toFixed(1) + " L" : inr(n);
+      const cr = n => n >= 1e7 ? "₹" + (n / 1e7).toFixed(2) + " Cr" : n >= 1e5 ? "₹" + (n / 1e5).toFixed(1) + " L" : inr(n);
       const x = [[LV.length || 99, "Expert Engineer"], [7, "Chief Engineer"], [5, "Site Engineer"], [1, "Junior Engineer"]].find(([n]) => nDone(S) >= n);
-      $("stats").innerHTML = `<span>â­ ${S.score}</span><span>ðŸ’° ${cr(S.treasury)}</span><span>ðŸ› ${cr(sub)}</span>` +
-        `<span>ðŸš— ${S.vehicles}</span><span class="gold">ðŸ”¥ ${S.streak}</span><span>${RANK_ICON[x ? x[1] : "Trainee"]}</span>`;
+      $("stats").innerHTML = `<span>⭐ ${S.score}</span><span>💰 ${cr(S.treasury)}</span><span>🏛 ${cr(sub)}</span>` +
+        `<span>🚗 ${S.vehicles}</span><span class="gold">🔥 ${S.streak}</span><span>${RANK_ICON[x ? x[1] : "Trainee"]}</span>`;
     } else if (innerWidth < 560) {
-      const cr = n => n >= 1e7 ? "â‚¹" + (n / 1e7).toFixed(2) + " Cr" : n >= 1e5 ? "â‚¹" + (n / 1e5).toFixed(1) + " L" : inr(n);
-      $("stats").innerHTML = `<span>â­ ${S.score}</span><span>${cr(S.treasury)}</span><span>${t("Subsidy")} ${cr(sub)}</span>` +
-        `<span>ðŸš— ${S.vehicles}</span><span class="gold">ðŸ”¥ ${S.streak}</span>`;
+      const cr = n => n >= 1e7 ? "₹" + (n / 1e7).toFixed(2) + " Cr" : n >= 1e5 ? "₹" + (n / 1e5).toFixed(1) + " L" : inr(n);
+      $("stats").innerHTML = `<span>⭐ ${S.score}</span><span>${cr(S.treasury)}</span><span>${t("Subsidy")} ${cr(sub)}</span>` +
+        `<span>🚗 ${S.vehicles}</span><span class="gold">🔥 ${S.streak}</span>`;
     } else {
       $("stats").innerHTML = `<span>${t("Score")} ${S.score}</span><span>${t("Treasury")} ${inr(S.treasury)}</span>` +
-        `<span>${t("Govt Subsidies")} ${inr(sub)}</span><span>ðŸš— ${S.vehicles}</span>` +
-        `<span class="gold">ðŸ”¥ ${t("{n}-day streak", { n: S.streak })}</span><span>${title()}</span>`;
+        `<span>${t("Govt Subsidies")} ${inr(sub)}</span><span>🚗 ${S.vehicles}</span>` +
+        `<span class="gold">🔥 ${t("{n}-day streak", { n: S.streak })}</span><span>${title()}</span>`;
     }
-    $("btn-mute").textContent = S.muted ? "ðŸ”‡" : "ðŸ”Š";
-    $("btn-lang").textContent = getLang() === "bn" ? "EN" : "à¦¬à¦¾à¦‚à¦²à¦¾";
+    $("btn-mute").textContent = S.muted ? "🔇" : "🔊";
+    $("btn-lang").textContent = getLang() === "bn" ? "EN" : "বাংলা";
     $("btn-view").textContent = S.view3d ? "2D" : "3D";
     $("btn-view").title = S.view3d ? t("Switch to 2D") : t("Switch to 3D");
     $("btn-3d").hidden = !S.view3d || view !== "class";
-    $("btn-3d").textContent = sym(v3.shown ? t("âœï¸ Build (2D)") : t("ðŸ§Š 3D view"));
+    $("btn-3d").textContent = sym(v3.shown ? t("✏️ Build (2D)") : t("🧊 3D view"));
   }
 
   // ---------------- 2D / 3D: the choice is saved; Three.js loads only when 3D is used ----------------
@@ -322,9 +322,9 @@
     }
     const w = $("h3warn");
     let msg = "", cls = "";
-    if (tt && tt.status === "failed") { msg = t("ðŸ’¥ STRUCTURAL FAILURE"); cls = "bad"; }
-    else if (tt && tt.status === "passed") { msg = t("âœ” BRIDGE HOLDS"); cls = "good"; }
-    else if (tt && tt.status === "running" && r >= 0.9) { msg = t("âš  FRACTURE IMMINENT"); cls = "bad pulse"; }
+    if (tt && tt.status === "failed") { msg = t("💥 STRUCTURAL FAILURE"); cls = "bad"; }
+    else if (tt && tt.status === "passed") { msg = t("✔ BRIDGE HOLDS"); cls = "good"; }
+    else if (tt && tt.status === "running" && r >= 0.9) { msg = t("⚠ FRACTURE IMMINENT"); cls = "bad pulse"; }
     if (w.dataset.m !== msg + cls) { w.dataset.m = msg + cls; w.textContent = msg; w.className = "g3 warn " + cls; w.hidden = !msg; }
   }
   const after3d = fn => { if (v3.shown) setTimeout(fn, 2300); else fn(); };   // let the 3D collapse play first
@@ -368,12 +368,12 @@
   // ---------------- start screen ----------------
   function buildStart() {
     const vp = $("viewpick"); vp.innerHTML = SYM ? "" : `<b>${esc(t("View:"))}</b>`;
-    for (const [on, label] of [[false, "2D"], [true, "ðŸ§Š 3D"]]) {
+    for (const [on, label] of [[false, "2D"], [true, "🧊 3D"]]) {
       const b = document.createElement("button"); b.textContent = label; b.classList.toggle("on", S.view3d === on);
       b.onclick = () => setView3d(on); vp.appendChild(b);
     }
     if (S.view3d) {
-      const lg = document.createElement("button"); lg.textContent = SYM ? "âš¡" : "âš¡ " + t("Low graphics"); lg.classList.toggle("on", !!S.lowGfx);
+      const lg = document.createElement("button"); lg.textContent = SYM ? "⚡" : "⚡ " + t("Low graphics"); lg.classList.toggle("on", !!S.lowGfx);
       lg.title = t("Fewer effects for slow phones");
       lg.onclick = () => { S.lowGfx = !S.lowGfx; save(); buildStart(); rebuild3d(); }; vp.appendChild(lg);
     }
@@ -410,7 +410,7 @@
   function buildMinimap() {
     const m = $("minimap"); m.innerHTML = "";
     const w = document.createElement("button");
-    w.textContent = "ðŸ†"; w.title = t("Weekly challenge"); w.className = "weekly"; w.onclick = openWeekly;
+    w.textContent = "🏆"; w.title = t("Weekly challenge"); w.className = "weekly"; w.onclick = openWeekly;
     m.appendChild(w);
     LV.forEach(l => {
       const b = document.createElement("button");
@@ -429,7 +429,7 @@
     lockedModal(level, st.wait, gate);
   }
   function lockedModal(level, wait, gate) {
-    modal(`ðŸ”’ ${esc(lname(LV[idxOf(level)]))}`,
+    modal(`🔒 ${esc(lname(LV[idxOf(level)]))}`,
       `<p>${esc(t("You tried {n} questions of {a}. Come back in {w} for {n} more,", { n: PREVIEW_QS, a: lname(LV[idxOf(level)]), w: hm(wait) }))}</p>
        <p><b>${esc(t("or answer {h}% of {b}'s questions right to open half of this class (now {c}%).",
          { h: pct(HALF_AT), b: gate, c: pct(coverage(prevClass(level).l)) }))}</b></p>`,
@@ -486,7 +486,7 @@
       }
     }
     wx.fillStyle = "#94a3b8"; wx.font = "12px Segoe UI, system-ui"; wx.textAlign = "left";
-    wx.fillText(t("Swipe or drag to move along the road Â· tap a building to enter"), 10, H - 10);
+    wx.fillText(t("Swipe or drag to move along the road · tap a building to enter"), 10, H - 10);
   }
   function miniBridge(x0, x1, y, tier, built) {
     const w = x1 - x0, mid = x0 + w / 2;
@@ -514,7 +514,7 @@
     for (let y = r.y + 46; y < r.y + r.h - 34; y += 22) for (let x = r.x + 16; x < r.x + r.w - 20; x += 30) wx.fillRect(x, y, 14, 12);
     wx.fillStyle = "#0f172a"; wx.fillRect(r.x + r.w / 2 - 12, r.y + r.h - 30, 24, 30); wx.fillRect(r.x + 10, r.y + 8, r.w - 20, 30);
     wx.fillStyle = "#fff"; wx.font = "bold 15px Segoe UI, system-ui"; wx.textAlign = "center";
-    wx.fillText((open ? "" : "ðŸ”’ ") + lname(info), r.x + r.w / 2, r.y + 28, r.w - 24);
+    wx.fillText((open ? "" : "🔒 ") + lname(info), r.x + r.w / 2, r.y + 28, r.w - 24);
     if (!open) {
       const st = previewState(s.level);
       wx.fillStyle = "#fde68a"; wx.font = "bold 12px Segoe UI, system-ui";
@@ -528,7 +528,7 @@
     wx.fillStyle = "#1e293b"; wx.fillRect(r.x + 10, r.road + 20, r.w - 20, 7);
     wx.fillStyle = "#34d399"; wx.fillRect(r.x + 10, r.road + 20, (r.w - 20) * prog, 7);
     wx.font = "12px Segoe UI, system-ui"; wx.fillStyle = "#e2e8f0";
-    wx.fillText(t("{n} Q Â· {s} subjects", { n: info.n.toLocaleString("en-IN"), s: Object.keys(info.subjects).length }), r.x + r.w / 2, r.road + 42);
+    wx.fillText(t("{n} Q · {s} subjects", { n: info.n.toLocaleString("en-IN"), s: Object.keys(info.subjects).length }), r.x + r.w / 2, r.road + 42);
     wx.fillStyle = "#facc15"; wx.font = "16px Segoe UI, system-ui"; wx.fillText(starText(starsOf(s.level)), r.x + r.w / 2, r.y - 34);
     if (done) { wx.fillStyle = "#4ade80"; wx.font = "bold 12px Segoe UI, system-ui"; wx.fillText(t("BRIDGE BUILT"), r.x + r.w / 2, r.y - 54); }
   }
@@ -578,7 +578,7 @@
     cur = newCur({ level, info, project, design: designs[level], mat: project.materials[0], size: project.sizes[1] || project.sizes[0], preview });
     $("toolbar").hidden = preview;
     $("card").hidden = false; $("chips").hidden = false; $("btn-bank").hidden = false;
-    $("card").innerHTML = `<div class="q">${SYM ? "â³" : esc(t("Loading {name} questionsâ€¦", { name: lname(info) }))}</div>`;
+    $("card").innerHTML = `<div class="q">${SYM ? "⏳" : esc(t("Loading {name} questions…", { name: lname(info) }))}</div>`;
     show("class");
     renderClassbar(); renderChips(); renderToolbar(); renderInfo();
     if (preview) setMsg(previewLine(level));
@@ -588,21 +588,21 @@
   }
   function renderClassbar() {
     if (cur.weekly) {
-      $("cl-name").textContent = SYM ? "ðŸ“…" : t("Weekly challenge"); $("cl-stars").textContent = "ðŸ†";
-      $("cl-sub").textContent = `${t(cur.project.name)} Â· ${t(cur.project.vehicle.name)} ${(cur.project.vehicle.mass / 1000).toFixed(1)} t`;
+      $("cl-name").textContent = SYM ? "📅" : t("Weekly challenge"); $("cl-stars").textContent = "🏆";
+      $("cl-sub").textContent = `${t(cur.project.name)} · ${t(cur.project.vehicle.name)} ${(cur.project.vehicle.mass / 1000).toFixed(1)} t`;
       return;
     }
-    $("cl-name").textContent = (cur.preview ? "ðŸ”’ " : "") + classSym(cur.info);
+    $("cl-name").textContent = (cur.preview ? "🔒 " : "") + classSym(cur.info);
     $("cl-stars").textContent = starText(starsOf(cur.level));
-    if (cur.preview) { $("cl-sub").textContent = SYM ? `ðŸ”“ ${previewState(cur.level).left}` : previewLine(cur.level); return; }
+    if (cur.preview) { $("cl-sub").textContent = SYM ? `🔓 ${previewState(cur.level).left}` : previewLine(cur.level); return; }
     const share = openShare(cur.level);
     if (SYM) {                                 // covered % of the bank and the bridge quiz, as numbers
-      $("cl-sub").textContent = `${share < 1 ? "Â½ Â· " : ""}ðŸ“Š ${pct(coverage(cur.level))}% Â· ðŸŒ‰ ${S.bridgeCorrect[cur.level] || 0}/${BRIDGE_STAR_GOAL}`;
+      $("cl-sub").textContent = `${share < 1 ? "½ · " : ""}📊 ${pct(coverage(cur.level))}% · 🌉 ${S.bridgeCorrect[cur.level] || 0}/${BRIDGE_STAR_GOAL}`;
       return;
     }
-    $("cl-sub").textContent = (share < 1 ? `${t("Half open")} Â· ` : "") +
-      `${t("Project {n}", { n: cur.project.id })}: ${t(cur.project.name)} Â· ` +
-      t("covered {c}% of {n} questions Â· bridge quiz {b}/{q}", { c: pct(coverage(cur.level)), n: cur.info.n.toLocaleString("en-IN"),
+    $("cl-sub").textContent = (share < 1 ? `${t("Half open")} · ` : "") +
+      `${t("Project {n}", { n: cur.project.id })}: ${t(cur.project.name)} · ` +
+      t("covered {c}% of {n} questions · bridge quiz {b}/{q}", { c: pct(coverage(cur.level)), n: cur.info.n.toLocaleString("en-IN"),
                                                                  b: S.bridgeCorrect[cur.level] || 0, q: BRIDGE_STAR_GOAL });
   }
   function previewLine(level) {
@@ -613,7 +613,7 @@
     const c = $("chips"); c.innerHTML = "";
     if (cur.weekly) return;
     const subs = Object.keys(cur.info.subjects);
-    const list = [[null, SYM ? "âœ³ï¸" : t("All")]].concat(subs.includes("bridge") ? [["bridge", SYM ? "ðŸŒ‰" : t("ðŸŒ‰ Bridge quiz")]] : [])
+    const list = [[null, SYM ? "✳️" : t("All")]].concat(subs.includes("bridge") ? [["bridge", SYM ? "🌉" : t("🌉 Bridge quiz")]] : [])
       .concat(subs.filter(s => s !== "bridge").map(s => [s, SYM ? (SUBJ_ICON[s] || sname(s)) : sname(s)]));
     for (const [s, label] of list) {
       const b = document.createElement("button");
@@ -626,7 +626,7 @@
     }
     if (BOOKS && BOOKS.levels[cur.level]) {     // one more tab: the class's NCERT books
       const b = document.createElement("button");
-      b.textContent = "ðŸ“š"; b.title = "NCERT"; b.classList.add("books");
+      b.textContent = "📚"; b.title = "NCERT"; b.classList.add("books");
       b.onclick = () => openBooks(cur.level);
       c.appendChild(b);
     }
@@ -679,15 +679,15 @@
     if (!q) { c.innerHTML = `<div class="q">${t("No questions here yet.")}</div>`; return; }
     const v = shown(q);
     const done = S.dailyDate === today() ? Math.min(DAILY_GOAL, S.dailyCount) : 0;
-    const daily = SYM ? (done >= DAILY_GOAL ? "ðŸ“… âœ“" : `ðŸ“… ${done}/${DAILY_GOAL}`)
-      : done >= DAILY_GOAL ? t("Daily challenge done âœ“") : t("Daily challenge: {a}/{b} right today", { a: done, b: DAILY_GOAL });
+    const daily = SYM ? (done >= DAILY_GOAL ? "📅 ✓" : `📅 ${done}/${DAILY_GOAL}`)
+      : done >= DAILY_GOAL ? t("Daily challenge done ✓") : t("Daily challenge: {a}/{b} right today", { a: done, b: DAILY_GOAL });
     const note = (q.isPrereq ? ` <small style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-weight:600">💡 Foundation Warm-up (Class 8–9)</small>` : "") + (getLang() === "bn" && !q.bn ? ` <small>${SYM ? "EN" : t("(English only)")}</small>` : "");
-    const auto = readsAloud() ? `<label><input type="checkbox" id="c-auto" ${S.autoRead ? "checked" : ""}> ${SYM ? "ðŸ”" : t("Auto-read")}</label>` : "";
-    const headTxt = SYM ? `${SUBJ_ICON[q.s] || esc(sname(q.s))} Â· âœ” +${cur.project.parts_per_correct} ðŸ”©`
-      : `${esc(lname(cur.info))} Â· ${esc(sname(q.s))} Â· ${t("right = +{n} parts", { n: cur.project.parts_per_correct })}`;
+    const auto = readsAloud() ? `<label><input type="checkbox" id="c-auto" ${S.autoRead ? "checked" : ""}> ${SYM ? "🔁" : t("Auto-read")}</label>` : "";
+    const headTxt = SYM ? `${SUBJ_ICON[q.s] || esc(sname(q.s))} · ✔ +${cur.project.parts_per_correct} 🔩`
+      : `${esc(lname(cur.info))} · ${esc(sname(q.s))} · ${t("right = +{n} parts", { n: cur.project.parts_per_correct })}`;
     c.innerHTML = `<div class="head"><span>${headTxt}${note}</span>` +
       `<span class="daily">${daily}</span></div>` +
-      `<div class="qrow"><div class="q">${esc(v.q)}</div><span class="read"><button id="c-read">${sym(t("ðŸ”ˆ Read"))}</button>${auto}</span></div>` +
+      `<div class="qrow"><div class="q">${esc(v.q)}</div><span class="read"><button id="c-read">${sym(t("🔈 Read"))}</button>${auto}</span></div>` +
       `<div class="opts"></div><div class="exp" id="exp"></div>`;
     const opts = c.querySelector(".opts");
     v.o.forEach((o, k) => {
@@ -718,14 +718,14 @@
       if (!q.isPrereq) markDone(cur.level, q.i); if (window.SetuShilpaExt) window.SetuShilpaExt.resetMiss();
       if (q.s === "bridge") S.bridgeCorrect[cur.level] = (S.bridgeCorrect[cur.level] || 0) + 1;
       dailyTick(); sfx.right();
-      line = `<span>${t("âœ“ Right! +{n} parts.", { n: cur.project.parts_per_correct })} ${esc(v.e)}</span>`;
+      line = `<span>${t("✓ Right! +{n} parts.", { n: cur.project.parts_per_correct })} ${esc(v.e)}</span>`;
     } else {
       btns[k].classList.add("wrong");
       S.score = Math.max(0, S.score - WRONG_PTS); S.treasury = Math.max(0, S.treasury - WRONG_CASH);
       sfx.wrong(); if (window.SetuShilpaExt && !q.isPrereq && cur.level >= 11 && window.SetuShilpaExt.trackMiss() >= 2) { window.SetuShilpaExt.resetMiss(); cur.needPrereqSubj = q.s; }
-      line = `<span>${esc(t("âœ— Answer: {a}.", { a: v.o[q.a] }))} ${esc(v.e)}</span>`;
+      line = `<span>${esc(t("✗ Answer: {a}.", { a: v.o[q.a] }))} ${esc(v.e)}</span>`;
     }
-    $("exp").innerHTML = line + `<button class="primary" id="btn-next">${t("Next â–¶")}</button>`;
+    $("exp").innerHTML = line + `<button class="primary" id="btn-next">${t("Next ▶")}</button>`;
     $("btn-next").onclick = nextQ;
     announceOpenings(sharesBefore);
     checkBadges(); save(); hud(); renderInfo(); renderClassbar();
@@ -742,7 +742,7 @@
     LV.forEach((l, k) => {
       const now = openShare(l.l);
       if (now <= before[k]) return;
-      toast(`ðŸ”“ ${esc(t(now >= 1 ? "{a} is now fully open!" : "{a} is now half open!", { a: lname(l) }))}`, 3000);
+      toast(`🔓 ${esc(t(now >= 1 ? "{a} is now fully open!" : "{a} is now half open!", { a: lname(l) }))}`, 3000);
       setTimeout(sfx.unlock, 300); buildMinimap();
     });
   }
@@ -753,7 +753,7 @@
       S.streak = S.lastDaily === today(-1) ? S.streak + 1 : S.lastDaily === today() ? S.streak : 1;
       S.lastDaily = today();
       cur.design.parts += DAILY_BONUS_PARTS;
-      toast(t("ðŸ”¥ Daily challenge done! {n}-day streak Â· +{p} bonus parts", { n: S.streak, p: DAILY_BONUS_PARTS }), 2800);
+      toast(t("🔥 Daily challenge done! {n}-day streak · +{p} bonus parts", { n: S.streak, p: DAILY_BONUS_PARTS }), 2800);
       sfx.pass();
     }
   }
@@ -768,13 +768,13 @@
   function openWeekly() {
     const { w, p, factor } = weeklySpec();
     newWeek(w);
-    modal(esc(t("ðŸ† Weekly Bridge Challenge - week {w}", { w: w % 52 + 1 })),
-      `<p>${esc(t("This week everyone builds the same bridge: {p} with a {v} {m} t ({x} Ã— heavier than normal). Parts are free - the fewest parts that pass wins. Your best this week: {b}.",
+    modal(esc(t("🏆 Weekly Bridge Challenge - week {w}", { w: w % 52 + 1 })),
+      `<p>${esc(t("This week everyone builds the same bridge: {p} with a {v} {m} t ({x} × heavier than normal). Parts are free - the fewest parts that pass wins. Your best this week: {b}.",
         { p: t(p.name), v: t(p.vehicle.name), m: (p.vehicle.mass / 1000).toFixed(1), x: factor, b: S.weekly.best === null ? t("none yet") : S.weekly.best }))}</p>` + weeklyBoard(),
       [[t("Start the challenge"), () => { closeModal(); enterWeekly(); }]]);
   }
   // Weekly bests on this device (kids game: nothing leaves the device, so no shared leaderboard). A new week files
-  // last week's best into the history; the board shows this week, the last weeks and a ðŸ¥‡ on the best ever.
+  // last week's best into the history; the board shows this week, the last weeks and a 🥇 on the best ever.
   function newWeek(w) {
     if (S.weekly.week === w) return;
     S.weeklyHist = S.weeklyHist || {};
@@ -788,10 +788,10 @@
   function weeklyBoard() {
     const hist = Object.entries(S.weeklyHist || {}).map(([k, v]) => [Number(k), v]).sort((a, b) => b[0] - a[0]).slice(0, 6);
     if (!hist.length && S.weekly.best === null) return "";
-    const top = bestEver(), medal = (v) => (v === top ? " ðŸ¥‡" : "");
+    const top = bestEver(), medal = (v) => (v === top ? " 🥇" : "");
     const rows = (S.weekly.best === null ? "" : `<li><b>${esc(t("This week: {b} parts", { b: S.weekly.best }))}</b>${medal(S.weekly.best)}</li>`)
       + hist.map(([k, v]) => `<li>${esc(t("Week {w}: {b} parts", { w: k % 52 + 1, b: v }))}${medal(v)}</li>`).join("");
-    return `<p><b>ðŸ“… ${esc(t("Your weekly bests"))}</b></p><ul>${rows}</ul>`;
+    return `<p><b>📅 ${esc(t("Your weekly bests"))}</b></p><ul>${rows}</ul>`;
   }
   function enterWeekly() {
     const { w, p } = weeklySpec(), key = "weekly" + w;
@@ -857,20 +857,20 @@
     const p = cur.project, d = cur.design;
     let msg = cur.msg, cls = cur.msgClass;
     if (!msg) { msg = cur.guide ? guideLine() : t("Physics: {s}", { s: t(p.lesson) }); cls = ""; }
-    const partsTxt = cur.weekly ? `${t("Weekly challenge")} Â· ${d.partsUsed()}` :
-      `${t("Parts {p} (+{n} per right answer)", { p: d.parts, n: p.parts_per_correct })} Â· ${t("par {p} parts (used {u})", { p: p.par_parts, u: d.partsUsed() })}`;
+    const partsTxt = cur.weekly ? `${t("Weekly challenge")} · ${d.partsUsed()}` :
+      `${t("Parts {p} (+{n} per right answer)", { p: d.parts, n: p.parts_per_correct })} · ${t("par {p} parts (used {u})", { p: p.par_parts, u: d.partsUsed() })}`;
     if (SYM) {
       const formula = (() => { const L = String(p.lesson || ""); const k = L.lastIndexOf(": "); const f = k >= 0 ? L.slice(k + 2) : ""; return /=/.test(f) ? f.replace(/\.$/, "") : ""; })();
       const n = cur.guide ? nextGuided() : null;
-      const line = cur.guide ? (n ? `ðŸ§­ ${cur.project.steps.indexOf(n.step) + 1}/${cur.project.steps.length} Â· ${MAT_ICON[n.m[2]] || ""} ${n.m[3]}` : "ðŸ§­ âœ“ â†’ ðŸš—") : (formula ? `ðŸ“ ${formula}` : "");
-      const parts = cur.weekly ? `ðŸ“… ðŸ”© ${d.partsUsed()}` : `ðŸ”© ${d.parts} (+${p.parts_per_correct}) Â· ðŸŽ¯ ${p.par_parts} (${d.partsUsed()})`;
-      $("buildinfo").innerHTML = `<div class="parts">${parts} Â· ðŸš— ${(p.vehicle.mass / 1000).toFixed(1)} t${p.impact !== 1 ? " Â· ðŸ’¥ Ã—" + p.impact : ""} Â· â†” ${p.span} m</div>` +
+      const line = cur.guide ? (n ? `🧭 ${cur.project.steps.indexOf(n.step) + 1}/${cur.project.steps.length} · ${MAT_ICON[n.m[2]] || ""} ${n.m[3]}` : "🧭 ✓ → 🚗") : (formula ? `📐 ${formula}` : "");
+      const parts = cur.weekly ? `📅 🔩 ${d.partsUsed()}` : `🔩 ${d.parts} (+${p.parts_per_correct}) · 🎯 ${p.par_parts} (${d.partsUsed()})`;
+      $("buildinfo").innerHTML = `<div class="parts">${parts} · 🚗 ${(p.vehicle.mass / 1000).toFixed(1)} t${p.impact !== 1 ? " · 💥 ×" + p.impact : ""} · ↔ ${p.span} m</div>` +
         `<div class="msg">${esc(line)}</div>`;
       return;
     }
     $("buildinfo").innerHTML = `<div class="goal">${esc(t(p.goal))}</div>` +
-      `<div class="parts">${partsTxt} Â· ${esc(t(p.vehicle.name))} ${(p.vehicle.mass / 1000).toFixed(1)} t` +
-      `${p.impact !== 1 ? " " + t("Ã— {n} impact", { n: p.impact }) : ""} Â· ${t("span {n} m", { n: p.span })}</div>` +
+      `<div class="parts">${partsTxt} · ${esc(t(p.vehicle.name))} ${(p.vehicle.mass / 1000).toFixed(1)} t` +
+      `${p.impact !== 1 ? " " + t("× {n} impact", { n: p.impact }) : ""} · ${t("span {n} m", { n: p.span })}</div>` +
       `<div class="msg ${cls}">${esc(msg)}</div>`;
   }
   function guideLine() {
@@ -893,14 +893,14 @@
     sep();
     p.sizes.forEach(s => add(`${s} (${CAT.size_cost[s]})`, () => { cur.size = s; renderToolbar(); }, cur.size === s));
     sep();
-    add(t("ðŸ—‘ Delete"), () => { cur.del = !cur.del; cur.forces = false; cur.sel = null; setMsg(cur.del ? t("Delete mode: tap a member you built to remove it (parts come back).") : ""); renderToolbar(); }, cur.del);
-    add(t("â†¶ Undo"), undo);
-    add(SYM ? "ðŸ§¹" : t("Clear"), () => { if (!busy()) { cur.design.clear(); cur.sel = null; setMsg(t("Cleared - all parts returned.")); edited(); } });
+    add(t("🗑 Delete"), () => { cur.del = !cur.del; cur.forces = false; cur.sel = null; setMsg(cur.del ? t("Delete mode: tap a member you built to remove it (parts come back).") : ""); renderToolbar(); }, cur.del);
+    add(t("↶ Undo"), undo);
+    add(SYM ? "🧹" : t("Clear"), () => { if (!busy()) { cur.design.clear(); cur.sel = null; setMsg(t("Cleared - all parts returned.")); edited(); } });
     sep();
-    add(t("ðŸ” Forces"), () => { cur.forces = !cur.forces; cur.del = false; cur.sel = null; cur.fj = null; setMsg(cur.forces ? t("Forces mode: tap a joint to see the pushes and pulls on it.") : ""); renderToolbar(); }, cur.forces);
-    add(t("ðŸ’¡ Hint"), hint);
-    add(t("â–¶ Show me"), showMe);
-    add(t("ðŸš— Test bridge"), startTest, false, "go");
+    add(t("🔍 Forces"), () => { cur.forces = !cur.forces; cur.del = false; cur.sel = null; cur.fj = null; setMsg(cur.forces ? t("Forces mode: tap a joint to see the pushes and pulls on it.") : ""); renderToolbar(); }, cur.forces);
+    add(t("💡 Hint"), hint);
+    add(t("▶ Show me"), showMe);
+    add(t("🚗 Test bridge"), startTest, false, "go");
   }
   function undo() {
     if (!busy() && cur.design.members.length) { cur.design.remove(cur.design.members.length - 1); sfx.remove(); setMsg(t("Undone - parts returned.")); edited(); }
@@ -993,8 +993,8 @@
       const newEver = everBefore !== null && used < everBefore;
       S.vehicles++; sfx.pass(); track("level_complete", { level: "weekly", parts: used });
       setMsg(t("Challenge passed with {u} parts! Your best this week: {b} parts.", { u: used, b: S.weekly.best }), "good");
-      modal("ðŸ† " + esc(t("Weekly challenge")), `<p>${esc(t("Challenge passed with {u} parts! Your best this week: {b} parts.", { u: used, b: S.weekly.best }))}</p>` +
-        (better ? `<p><b>${t("New personal best!")}</b></p>` : "") + (newEver ? `<p><b>ðŸ¥‡ ${esc(t("New best ever: {b} parts!", { b: used }))}</b></p>` : "") + weeklyBoard(), [[t("Back to the road"), () => { closeModal(); show("world"); }], [t("Keep improving"), closeModal]]);
+      modal("🏆 " + esc(t("Weekly challenge")), `<p>${esc(t("Challenge passed with {u} parts! Your best this week: {b} parts.", { u: used, b: S.weekly.best }))}</p>` +
+        (better ? `<p><b>${t("New personal best!")}</b></p>` : "") + (newEver ? `<p><b>🥇 ${esc(t("New best ever: {b} parts!", { b: used }))}</b></p>` : "") + weeklyBoard(), [[t("Back to the road"), () => { closeModal(); show("world"); }], [t("Keep improving"), closeModal]]);
     } else if (ok) {
       S.complete[lvl] = true; S.vehicles++;
       S.bestParts[lvl] = Math.min(S.bestParts[lvl] ?? Infinity, used);
@@ -1004,17 +1004,17 @@
       const nextLv = LV[idxOf(lvl) + 1];
       const toOpen = nextLv && openShare(nextLv.l) < 1
         ? t("Answer questions here: at {h}% the next class opens halfway, at 100% fully. Now {c}%.", { h: pct(HALF_AT), c: pct(coverage(lvl)) }) : "";
-      modal(t("ðŸŽ‰ Bridge passed!"), `<p style="font-size:30px;text-align:center;margin:4px" class="stars">${starText(st)}</p>
+      modal(t("🎉 Bridge passed!"), `<p style="font-size:30px;text-align:center;margin:4px" class="stars">${starText(st)}</p>
         <p>${t("The {v} crossed safely. The most loaded member reached <b>{n}%</b> of its limit.", { v: esc(t(p.vehicle.name)), n: worstPct })}</p>
-        <ul><li>â˜… ${t("Bridge holds")}</li><li>${used <= p.par_parts ? "â˜…" : "â˜†"} ${t("Built within par: {u} / {p} parts", { u: used, p: p.par_parts })}</li>
-        <li>${(S.bridgeCorrect[lvl] || 0) >= BRIDGE_STAR_GOAL ? "â˜…" : "â˜†"} ${t("Bridge quiz: {a} / {b} right", { a: S.bridgeCorrect[lvl] || 0, b: BRIDGE_STAR_GOAL })}</li></ul>
-        ${toOpen ? `<p>ðŸ“š ${esc(toOpen)}</p>` : ""}`,
+        <ul><li>★ ${t("Bridge holds")}</li><li>${used <= p.par_parts ? "★" : "☆"} ${t("Built within par: {u} / {p} parts", { u: used, p: p.par_parts })}</li>
+        <li>${(S.bridgeCorrect[lvl] || 0) >= BRIDGE_STAR_GOAL ? "★" : "☆"} ${t("Bridge quiz: {a} / {b} right", { a: S.bridgeCorrect[lvl] || 0, b: BRIDGE_STAR_GOAL })}</li></ul>
+        ${toOpen ? `<p>📚 ${esc(toOpen)}</p>` : ""}`,
         [[t("Back to the road"), () => { closeModal(); show("world"); world.focus(lvl); }], [t("Keep improving"), closeModal]]);
     } else {
       sfx.snap(); track("game_over", { level: lvl });
       const n = nextGuided(), member = cur.test.failIdx !== undefined;
       setMsg(t("{why} Strengthen the dark red member (bigger size, stronger material) or add bracing.", { why }), "bad");
-      after3d(() => modal(t("ðŸ’¥ The bridge failed"), `<p><b>${esc(why)}</b></p><p>${t(member ? "The broken member is dark red. Hover or tap any member to read its force."
+      after3d(() => modal(t("💥 The bridge failed"), `<p><b>${esc(why)}</b></p><p>${t(member ? "The broken member is dark red. Hover or tap any member to read its force."
         : "Nothing broke - the frame could move like a mechanism, so it needs more members.")}</p><p>${esc(t(p.hints[0]))}</p>`,
         [[t("Second chance: show the next guided member"), () => { closeModal(); track("reward_offered", { kind: "fix" });
           offerReward(() => { track("reward_taken", { kind: "fix" }); cur.guide = true; $("btn-guide").classList.add("on"); setMsg(n ? guideLine() : t("Your design is complete - make the red member bigger.")); }, "continue"); }],
@@ -1139,7 +1139,7 @@
       Array.from({ length: b.n }, (_, k) => `<a href="${BOOKS.base}${b.c}${String(k + 1).padStart(2, "0")}.pdf" target="_blank" rel="noopener" ` +
         `style="min-width:34px;text-align:center;padding:6px 8px;border-radius:8px;background:#1e3a5f;color:#fff;text-decoration:none">${k + 1}</a>`).join("") +
       `</div></div>`).join("");
-    modal("ðŸ“š NCERT", `<p style="opacity:.8;margin:0 0 10px">ðŸ“– ncert.nic.in</p>${html}`);
+    modal("📚 NCERT", `<p style="opacity:.8;margin:0 0 10px">📖 ncert.nic.in</p>${html}`);
     track("books_open", { level: level });
   }
   function closeModal() { $("modal").classList.remove("show"); $("modal").classList.remove("report"); modalKeys = null; }
@@ -1155,7 +1155,7 @@
       const items = list.slice(page * per, page * per + per);
       $("m-body").innerHTML = items.map((q, k) => { const v = shown(q); return `<div class="bankitem"><div class="bq">${page * per + k + 1}. ${SYM ? (SUBJ_ICON[q.s] || "") : `[${esc(sname(q.s))}]`} ${esc(v.q)}</div>
         <ol type="A">${v.o.map((o, i) => `<li data-i="${i}" data-a="${q.a}">${esc(o)}</li>`).join("")}</ol>
-        <div class="be" hidden>${SYM ? `âœ” ${esc(v.o[q.a])}` : esc(t("Answer: {a}", { a: v.o[q.a] }))} Â· ${esc(v.e)}</div></div>`; }).join("");
+        <div class="be" hidden>${SYM ? `✔ ${esc(v.o[q.a])}` : esc(t("Answer: {a}", { a: v.o[q.a] }))} · ${esc(v.e)}</div></div>`; }).join("");
       // answers stay hidden until an option is tapped: right = green, a wrong pick = red, then the explanation
       $("m-body").querySelectorAll(".bankitem li").forEach(li => li.onclick = () => {
         const item = li.closest(".bankitem"); if (item.classList.contains("done")) return;
@@ -1170,10 +1170,10 @@
     };
     const go = d => { page = Math.max(0, Math.min(pages() - 1, page + d)); draw(); };
     const subj = cur.subject ? sname(cur.subject) : t("All subjects");
-    const bankTitle = SYM ? `ðŸ“‹ ${esc(classSym(cur.info))} Â· ${cur.subject ? (SUBJ_ICON[cur.subject] || esc(subj)) : "âœ³ï¸"} Â· ${cur.pool.length.toLocaleString("en-IN")}`
-      : esc(t("ðŸ“‹ Q&A Bank: {a} - {b} ({n})", { a: lname(cur.info), b: subj, n: cur.pool.length.toLocaleString("en-IN") }));
+    const bankTitle = SYM ? `📋 ${esc(classSym(cur.info))} · ${cur.subject ? (SUBJ_ICON[cur.subject] || esc(subj)) : "✳️"} · ${cur.pool.length.toLocaleString("en-IN")}`
+      : esc(t("📋 Q&A Bank: {a} - {b} ({n})", { a: lname(cur.info), b: subj, n: cur.pool.length.toLocaleString("en-IN") }));
     modal(bankTitle, "", [
-      ["â®", () => go(-1e9), ""], [SYM ? "â—€" : t("â—€ Prev"), () => go(-1)], [`<span id="pg"></span>`, () => {}, ""], [SYM ? "â–¶" : t("Next â–¶"), () => go(1)], ["â­", () => go(1e9), ""]]);
+      ["⏮", () => go(-1e9), ""], [SYM ? "◀" : t("◀ Prev"), () => go(-1)], [`<span id="pg"></span>`, () => {}, ""], [SYM ? "▶" : t("Next ▶"), () => go(1)], ["⏭", () => go(1e9), ""]]);
     draw();
     modalKeys = e => { if (e.key === "ArrowRight") go(1); else if (e.key === "ArrowLeft") go(-1); else if (e.key === "PageDown") go(50); else if (e.key === "PageUp") go(-50); };
   }
@@ -1184,25 +1184,25 @@
     const n = nextGuided(), nowStep = n ? cur.project.steps.indexOf(n.step) : cur.project.steps.length;
     if (SYM) {
       const items = cur.project.steps.map((st, k) => {
-        const mark = k < nowStep ? "âœ“" : k === nowStep ? "â–¶" : "Â·";
+        const mark = k < nowStep ? "✓" : k === nowStep ? "▶" : "·";
         const sizes = [...new Set(st.members.map(m => m[3]))].join("/");
-        return `<li class="${k < nowStep ? "done" : k === nowStep ? "now" : ""}">${mark} ${MAT_ICON[st.members[0][2]] || ""} Ã— ${st.members.length} Â· ${sizes}</li>`;
+        return `<li class="${k < nowStep ? "done" : k === nowStep ? "now" : ""}">${mark} ${MAT_ICON[st.members[0][2]] || ""} × ${st.members.length} · ${sizes}</li>`;
       }).join("");
-      modal(`ðŸ§­ ${Math.min(nowStep + 1, cur.project.steps.length)}/${cur.project.steps.length}`, `<ol class="steps">${items}</ol>`,
-        [["â–¶", () => { closeModal(); renderInfo(); }]]);
+      modal(`🧭 ${Math.min(nowStep + 1, cur.project.steps.length)}/${cur.project.steps.length}`, `<ol class="steps">${items}</ol>`,
+        [["▶", () => { closeModal(); renderInfo(); }]]);
       renderInfo();
       return;
     }
     const steps = cur.project.steps.map((s, k) => `<li class="${k < nowStep ? "done" : k === nowStep ? "now" : ""}">${esc(t(s.text))}
-      <small>(${s.members.length} Ã— ${esc(matName(s.members[0][2]))}${[...new Set(s.members.map(m => m[3]))].map(x => " " + x).join("/")})</small></li>`).join("");
-    modal(esc(t("ðŸ§­ Guided build: {p}", { p: t(cur.project.name) })), `<p>${esc(t(cur.project.goal))}</p><ol class="steps">${steps}</ol>
-      <p>${esc(t("On the bridge, the glowing joints show the next member. Tap them, or press â–¶ Show me to place it with your parts. Stuck? ðŸ’¡ Hint gives three hints in turn."))}</p>
+      <small>(${s.members.length} × ${esc(matName(s.members[0][2]))}${[...new Set(s.members.map(m => m[3]))].map(x => " " + x).join("/")})</small></li>`).join("");
+    modal(esc(t("🧭 Guided build: {p}", { p: t(cur.project.name) })), `<p>${esc(t(cur.project.goal))}</p><ol class="steps">${steps}</ol>
+      <p>${esc(t("On the bridge, the glowing joints show the next member. Tap them, or press ▶ Show me to place it with your parts. Stuck? 💡 Hint gives three hints in turn."))}</p>
       <p><small>${esc(t(cur.project.tip))}</small></p>`, [[t("Start building"), () => { closeModal(); renderInfo(); }]]);
     renderInfo();
   }
 
   async function openHandbook() {
-    if (!HANDBOOK) { modal(SYM ? "ðŸ“˜" : t("ðŸ“˜ Engineering Handbook"), "<p>â³</p>"); HANDBOOK = await (await fetch("data/handbook.json")).json(); }
+    if (!HANDBOOK) { modal(SYM ? "📘" : t("📘 Engineering Handbook"), "<p>⏳</p>"); HANDBOOK = await (await fetch("data/handbook.json")).json(); }
     let sec = 0, query = "";
     const draw = () => {
       const bn = getLang() === "bn";
@@ -1214,33 +1214,33 @@
       }));
       $("m-body").innerHTML = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${tabs}</div>` +
         (SYM ? "" : `<p><small>${esc(t("200 answers from the classic FAILSPAN levels: the physics of trusses, beams, wind, quakes and money."))}</small></p>`) +
-        (rows.join("") || `<p>${SYM ? "âˆ…" : t("No matches.")}</p>`);
+        (rows.join("") || `<p>${SYM ? "∅" : t("No matches.")}</p>`);
       $("m-body").querySelectorAll("button[data-s]").forEach(b => b.onclick = () => { sec = +b.dataset.s; query = ""; $("hb-q").value = ""; draw(); });
     };
-    modal(SYM ? "ðŸ“˜" : t("ðŸ“˜ Engineering Handbook"), "", [[`<input type="search" id="hb-q" placeholder="${SYM ? "ðŸ”" : esc(t("Search both languagesâ€¦"))}">`, () => {}, ""]]);
+    modal(SYM ? "📘" : t("📘 Engineering Handbook"), "", [[`<input type="search" id="hb-q" placeholder="${SYM ? "🔍" : esc(t("Search both languages…"))}">`, () => {}, ""]]);
     $("hb-q").addEventListener("input", e => { query = e.target.value.trim().toLowerCase(); draw(); });
     draw();
   }
 
   function openProfile() {
     const done = nDone(S), stars = LV.reduce((a, l) => a + starsOf(l.l), 0);
-    const badges = BADGES.map(([k, ic, name]) => `<div class="badge ${hasBadge(k) ? "got" : ""}" title="${esc(t(name))}"><span class="ic">${hasBadge(k) ? ic : "ðŸ”’"}</span>${SYM ? "" : esc(t(name))}</div>`).join("");
+    const badges = BADGES.map(([k, ic, name]) => `<div class="badge ${hasBadge(k) ? "got" : ""}" title="${esc(t(name))}"><span class="ic">${hasBadge(k) ? ic : "🔒"}</span>${SYM ? "" : esc(t(name))}</div>`).join("");
     const startSel = LV.map((l, k) => `<option value="${k}" ${k === S.start ? "selected" : ""}>${esc(classSym(l))}</option>`).join("");
     if (SYM) {
       const x = [[LV.length || 99, "Expert Engineer"], [7, "Chief Engineer"], [5, "Site Engineer"], [1, "Junior Engineer"]].find(([n]) => nDone(S) >= n);
-      modal(`ðŸ… ${RANK_ICON[x ? x[1] : "Trainee"]}`,
-        `<p style="font-size:1.15em">ðŸŒ‰ ${done}/${LV.length} Â· â­ ${stars}/${LV.length * 3} Â· âœ” ${totalCorrect(S).toLocaleString("en-IN")} Â· ðŸ† ${S.best} Â· ðŸ”¥ ${S.streak}</p>` +
-        `<div class="badges">${badges}</div><p style="margin-top:14px">ðŸ« <select id="pf-start" style="font:inherit;padding:6px;border-radius:6px">${startSel}</select></p>`,
-        [["ðŸ“„", openReport], ["âœ”", closeModal]]);
-      $("pf-start").onchange = e => { S.start = +e.target.value; save(); buildMinimap(); toast("ðŸ« âœ”"); };
+      modal(`🏅 ${RANK_ICON[x ? x[1] : "Trainee"]}`,
+        `<p style="font-size:1.15em">🌉 ${done}/${LV.length} · ⭐ ${stars}/${LV.length * 3} · ✔ ${totalCorrect(S).toLocaleString("en-IN")} · 🏆 ${S.best} · 🔥 ${S.streak}</p>` +
+        `<div class="badges">${badges}</div><p style="margin-top:14px">🏫 <select id="pf-start" style="font:inherit;padding:6px;border-radius:6px">${startSel}</select></p>`,
+        [["📄", openReport], ["✔", closeModal]]);
+      $("pf-start").onchange = e => { S.start = +e.target.value; save(); buildMinimap(); toast("🏫 ✔"); };
       return;
     }
-    modal(`ðŸ… ${esc(title())}`, `<p>${esc(t("{a} of 9 bridges built Â· {b} of 27 stars Â· {c} right answers Â· best score {d} Â· ðŸ”¥ {e}-day streak",
+    modal(`🏅 ${esc(title())}`, `<p>${esc(t("{a} of 9 bridges built · {b} of 27 stars · {c} right answers · best score {d} · 🔥 {e}-day streak",
         { a: done, b: stars, c: totalCorrect(S).toLocaleString("en-IN"), d: S.best, e: S.streak }))}</p><div class="badges">${badges}</div>
       <p style="margin-top:14px">${t("My class:")} <select id="pf-start" style="font:inherit;padding:6px;border-radius:6px">${startSel}</select>
       <small> ${t("- buildings up to your class are open.")}</small></p>
       <p><small>${esc(t("Answer {a}% of a class's questions right and the next class opens halfway; 100% opens it fully. Locked buildings let you try {n} questions every {h} hours.",
-        { a: pct(HALF_AT), n: PREVIEW_QS, h: PREVIEW_HOURS }))}</small></p>`, [[t("ðŸ“„ Report card"), openReport], [t("Done"), closeModal]]);
+        { a: pct(HALF_AT), n: PREVIEW_QS, h: PREVIEW_HOURS }))}</small></p>`, [[t("📄 Report card"), openReport], [t("Done"), closeModal]]);
     $("pf-start").onchange = e => { S.start = +e.target.value; save(); buildMinimap(); toast(t("Class saved")); };
   }
 
@@ -1253,11 +1253,11 @@
   function openReport() {
     const rows = reportRows(), date = new Date().toLocaleDateString(getLang() === "bn" ? "bn-IN" : "en-IN");
     const head = [t("Building"), t("Stars"), t("Bridge"), t("Right answers"), t("Covered"), t("Bridge quiz"), t("Best parts")];
-    const html = `<p><b>${t("Title")}:</b> ${esc(title())} Â· <b>${t("Streak")}:</b> ${S.streak} Â· <b>${t("Total right answers")}:</b> ${totalCorrect(S)} Â·
-      <b>${t("Bridges built")}:</b> ${nDone(S)}/${LV.length} Â· <b>${t("Score")}:</b> ${S.score}</p>
+    const html = `<p><b>${t("Title")}:</b> ${esc(title())} · <b>${t("Streak")}:</b> ${S.streak} · <b>${t("Total right answers")}:</b> ${totalCorrect(S)} ·
+      <b>${t("Bridges built")}:</b> ${nDone(S)}/${LV.length} · <b>${t("Score")}:</b> ${S.score}</p>
       <table class="report"><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr>${rows.map(r => `<tr><td>${esc(r.name)}</td><td class="stars">${starText(r.stars)}</td>
       <td>${r.bridge}</td><td>${r.right}</td><td>${r.mastery}</td><td>${r.quiz}/${BRIDGE_STAR_GOAL}</td><td>${r.parts}</td></tr>`).join("")}</table>`;
-    modal(esc(t("ðŸ“„ Report card - {d}", { d: date })), html, [[t("ðŸ–¨ Print / Save PDF"), () => window.print()], [t("ðŸ“‹ Copy text"), () => {
+    modal(esc(t("📄 Report card - {d}", { d: date })), html, [[t("🖨 Print / Save PDF"), () => window.print()], [t("📋 Copy text"), () => {
       const txt = [`FAILSPAN - ${date}`, `${t("Title")}: ${title()} | ${t("Streak")}: ${S.streak} | ${t("Total right answers")}: ${totalCorrect(S)} | ${t("Bridges built")}: ${nDone(S)}/${LV.length}`,
         head.join("\t")].concat(rows.map(r => [r.name, starText(r.stars), r.bridge, r.right, r.mastery, `${r.quiz}/${BRIDGE_STAR_GOAL}`, r.parts].join("\t"))).join("\n");
       try { navigator.clipboard.writeText(txt).then(() => toast(t("Copied")), () => {}); } catch (e) {}
@@ -1330,7 +1330,7 @@
     // opening theme: dominoes from Class 1 down to Expert Engineer, each smaller, then the game starts
     window.BWIntro.play({
       labels: LV.map(lname), title: t("FAILSPAN"), subtitle: t("Small steps. Bigger every class."),
-      tagline: t("STRUCTURAL MAYHEM"), stressLabel: t("STRESS COEFFICIENT"), skipText: t("Skip â–¶"),
+      tagline: t("STRUCTURAL MAYHEM"), stressLabel: t("STRESS COEFFICIENT"), skipText: t("Skip ▶"),
       click: (k, n) => tone(880 - k * 42, 0.06 + k * 0.006, "square", 0.03 + 0.06 * k / n),
       freezeAt: new URLSearchParams(location.search).has("introAt") ? +new URLSearchParams(location.search).get("introAt") : null,
       onDone: () => {
