@@ -1,0 +1,4 @@
+# GitHub Pages (Jekyll) publishes this repo as the game site. data/archive holds removed questions kept for the
+# record only; it is never shipped to players.
+exclude:
+  - data/archive/
