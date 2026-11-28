@@ -18,8 +18,7 @@
   function offerReward(onDone, kind) { try { var S = window.Stratos || parent.Stratos; if (S && S.coins && S.coins.offer) { S.coins.offer(kind || 'hint', onDone); return; } } catch (e) {} onDone(); }
 
   const CORRECT_CASH = 10000, CORRECT_PTS = 4, WRONG_CASH = 1000, WRONG_PTS = 1, SUBSIDY_PER_POINT = 2500;
-  const PREVIEW_QS = 5, PREVIEW_HOURS = 5;   // a locked building lets you try 5 questions every 5 hours
-  const HALF_AT = 0.5, FULL_AT = 1;          // previous class covered 50% -> this class half open; 100% -> fully open
+  const U = window.BWUnlock;                 // which questions are open (js/unlock.js, owner rules 28-Nov-2026)
   const DAILY_GOAL = 5, DAILY_BONUS_PARTS = 10, BRIDGE_STAR_GOAL = 10, TEST_SECONDS = 5;
   const SHORT = { 15: "BE", 13: "NIT", 14: "IIT", 16: "EXP" };
   const ZONE = ["#14532d", "#1e3a5f", "#3b1f5c", "#5c3a1a", "#5c1a2a"];
@@ -58,7 +57,7 @@
     return { start: -1, score: 0, best: 0, treasury: 50000000, vehicles: 0, muted: false, lang: "en", autoRead: true,
              correct: {}, bridgeCorrect: {}, complete: {}, bestParts: {}, builds: {}, parts: {},
              streak: 0, lastDaily: "", dailyDate: "", dailyCount: 0, answered: 0, badges: {}, weekly: { week: -1, best: null, build: [] }, weeklyHist: {},
-             preview: {}, done: {}, doneN: {}, view3d: false, lowGfx: false };
+             done: {}, doneN: {}, view3d: false, lowGfx: false, unlock: null };
   }
   // 08-Nov-2026: Classes 1-7 removed (index of "my class" moves down 7) and each of Classes 8-12 got its own
   // bridge project; a saved build of a class whose project changed no longer fits, so only that build is cleared
@@ -70,8 +69,9 @@
     s.v8 = 1;
     return s;
   }
+  let hadSave = false;                 // saved progress from before this visit (for the one-time unlock migration)
   function load() {
-    try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === "object") return migrate(Object.assign(fresh(), s)); } catch (e) {}
+    try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === "object") { hadSave = true; return migrate(Object.assign(fresh(), s)); } } catch (e) {}
     return Object.assign(fresh(), { v8: 1 });
   }
   function save() {
@@ -124,10 +124,9 @@
   const lname = info => /^Class \d+$/.test(info.name) ? t("Class {n}", { n: info.name.slice(6) }) : t(info.name);
   const sname = s => t(NAMES[s] || s);
   // ---- how much of each class is open ----
-  // Every question answered right at least once is marked in a bit set per class (saved as base64).
-  // Coverage = share of a class's bank answered right. When the previous class reaches 50% coverage this
-  // class opens half its questions (every second one, so every subject is there); at 100% it opens fully.
-  // Classes up to the player's own class are fully open from the start.
+  // Every question answered right at least once is marked in a bit set per class (saved as base64); doneN
+  // counts them. What is open follows js/unlock.js: the starting class fully, lower classes never, higher
+  // classes 10 + 10 per 10 right answers in the previous class, fully at 100. Coverage is only shown.
   const DONE = {};
   const levelN = level => LV[idxOf(level)].n;
   function bits(level) {
@@ -149,32 +148,18 @@
   }
   const coverage = level => Math.min(1, (S.doneN[level] || 0) / Math.max(1, levelN(level)));
   const pct = x => Math.floor(x * 100);
-  function openShare(level) {
-    if (UNLOCK_ALL) return 1;
-    const k = idxOf(level);
-    if (k <= Math.max(0, S.start)) return 1;
-    const c = coverage(LV[k - 1].l);
-    return c >= FULL_AT ? 1 : c >= HALF_AT ? HALF_AT : 0;
-  }
+  // { full, count, half, locked } of a class; ?unlock opens everything (and saves nothing)
+  const openOf = level => UNLOCK_ALL ? { full: true, count: levelN(level), half: false, locked: false } : U.state(LV, S, idxOf(level));
+  const isFull = level => openOf(level).full;
   function unlockedUpTo() {
     let top = 0;
-    LV.forEach((l, k) => { if (openShare(l.l) > 0) top = k; });
+    LV.forEach((l, k) => { if (isFull(l.l)) top = k; });
     return top;
   }
-  // locked buildings: PREVIEW_QS free questions, then wait PREVIEW_HOURS (the window starts at the first try)
-  function previewState(level) {
-    const pv = S.preview[level];
-    if (!pv || Date.now() - pv.start >= PREVIEW_HOURS * 3600e3) return { left: PREVIEW_QS, wait: 0 };
-    return { left: Math.max(0, PREVIEW_QS - pv.used), wait: pv.start + PREVIEW_HOURS * 3600e3 - Date.now() };
-  }
-  function usePreview(level) {
-    const st = previewState(level);
-    if (st.left === PREVIEW_QS) S.preview[level] = { start: Date.now(), used: 0 };
-    S.preview[level].used++;
-  }
-  const hm = ms => { const m = Math.ceil(ms / 60000); return `${Math.floor(m / 60)}h ${m % 60}m`; };
   const prevClass = level => LV[Math.max(0, idxOf(level) - 1)];
-  const isUnlocked = level => openShare(level) > 0;
+  const isUnlocked = level => !openOf(level).locked;
+  // "10 of 492 open" (a class that was half open before keeps its every-second question as well)
+  const openLabel = level => { const o = openOf(level); return o.half ? t("Half open") : t("{o} of {n} open", { o: o.count, n: levelN(level) }); };
   function starsOf(level) {
     const p = CAT.projects[LV[idxOf(level)].project - 1];
     return (S.complete[level] ? 1 : 0) + (S.complete[level] && S.bestParts[level] <= p.par_parts ? 1 : 0)
@@ -299,7 +284,7 @@
     const slots = world.slots.map((s, k) => {
       const l = LV[k], done = !!S.complete[l.l], locked = !isUnlocked(l.l);
       return { level: s.level, x: s.x, w: s.w, project: l.project, zone: ZONE[l.project - 1], name: lname(l), done, locked,
-               sub: locked ? t("Locked") : openShare(l.l) < 1 ? t("Half open") : starText(starsOf(l.l)) };
+               sub: locked ? t("Locked") : !isFull(l.l) ? openLabel(l.l) : starText(starsOf(l.l)) };
     });
     return { slots, width: world.width, center: world.cam + (world.cw || 800) / 2,
              key: getLang() + slots.map(s => s.sub + s.done + s.locked).join("") };
@@ -381,9 +366,20 @@
     LV.forEach((l, k) => {
       const b = document.createElement("button");
       b.textContent = classSym(l);
-      b.onclick = () => { S.start = k; save(); sfx.unlock(); world.focus(l.l); show("world"); };
+      b.onclick = () => confirmStart(k);
       g.appendChild(b);
     });
+  }
+
+  // the starting class is chosen once: it opens fully and the classes below it stay locked for good
+  function confirmStart(k) {
+    const l = LV[k], below = LV.slice(0, k).map(lname).join(", ");
+    modal(`🏫 ${esc(lname(l))}`,
+      `<p>${esc(t("Start at {a}? {a} opens fully. Each class above it opens 10 questions at a time as you answer right.", { a: lname(l) }))}</p>` +
+      (k > 0 ? `<p id="start-warn" style="background:#7f1d1d;color:#fff;padding:8px 10px;border-radius:8px"><b>⚠ ${esc(t("Warning: the classes below {a} ({b}) will be locked and can never be opened later.", { a: lname(l), b: below }))}</b></p>` : ""),
+      [[esc(t("Yes, start at {a}", { a: lname(l) })), () => {
+        closeModal(); S.start = k; if (!UNLOCK_ALL) U.update(LV, S); save(); sfx.unlock(); world.focus(l.l); show("world");
+      }], [esc(t("Choose again")), closeModal, ""]]);
   }
 
   // ---------------- Campus World ----------------
@@ -416,24 +412,28 @@
       const b = document.createElement("button");
       b.textContent = SHORT[l.l] || l.l;
       b.title = lname(l);
-      b.className = S.complete[l.l] ? "done" : !isUnlocked(l.l) ? "locked" : openShare(l.l) < 1 ? "half" : "";
+      b.className = S.complete[l.l] ? "done" : !isUnlocked(l.l) ? "locked" : !isFull(l.l) ? "half" : "";
       b.onclick = () => enterOrExplain(l.l);
       m.appendChild(b);
     });
   }
   function enterOrExplain(level) {
     if (isUnlocked(level)) { enterLevel(level); return; }
-    const st = previewState(level), gate = lname(prevClass(level));
-    if (st.left > 0) { enterLevel(level, true); return; }
     world.focus(level);
-    lockedModal(level, st.wait, gate);
+    lockedModal(level);
   }
-  function lockedModal(level, wait, gate) {
+  // only classes below the starting class are locked, for good
+  function lockedModal(level) {
+    const start = LV[Math.max(0, S.start)];
     modal(`🔒 ${esc(lname(LV[idxOf(level)]))}`,
-      `<p>${esc(t("You tried {n} questions of {a}. Come back in {w} for {n} more,", { n: PREVIEW_QS, a: lname(LV[idxOf(level)]), w: hm(wait) }))}</p>
-       <p><b>${esc(t("or answer {h}% of {b}'s questions right to open half of this class (now {c}%).",
-         { h: pct(HALF_AT), b: gate, c: pct(coverage(prevClass(level).l)) }))}</b></p>`,
-      [[t("Go to {b}", { b: esc(gate) }), () => { closeModal(); enterOrExplain(prevClass(level).l); }], [t("Back to the road"), () => { closeModal(); show("world"); }, ""]]);
+      `<p id="locked-msg"><b>${esc(t("{a} is locked for good: you started at {b}, so the classes below it stay closed.", { a: lname(LV[idxOf(level)]), b: lname(start) }))}</b></p>`,
+      [[t("Go to {b}", { b: esc(lname(start)) }), () => { closeModal(); enterLevel(start.l); }], [t("Back to the road"), () => { closeModal(); show("world"); }, ""]]);
+  }
+  // shown in a class that is not fully open yet
+  function openLine(level) {
+    const o = openOf(level), p = prevClass(level), right = Math.min(U.FULL_AT, S.doneN[p.l] || 0);
+    return t("{o} of {n} questions open. Every 10 right answers in {b} open 10 more here; 100 open all of it (now {c} right).",
+      { o: o.half ? t("Half") : o.count, n: levelN(level).toLocaleString("en-IN"), b: lname(p), c: right });
   }
   function bRect(s) {
     const rank = idxOf(s.level), h = Math.min(world.ch * 0.55, 110 + rank * 8), road = world.ch - 70;
@@ -516,14 +516,13 @@
     wx.fillStyle = "#fff"; wx.font = "bold 15px Segoe UI, system-ui"; wx.textAlign = "center";
     wx.fillText((open ? "" : "🔒 ") + lname(info), r.x + r.w / 2, r.y + 28, r.w - 24);
     if (!open) {
-      const st = previewState(s.level);
       wx.fillStyle = "#fde68a"; wx.font = "bold 12px Segoe UI, system-ui";
-      wx.fillText(st.left > 0 ? t("Try {n} free questions", { n: st.left }) : t("Back in {w}", { w: hm(st.wait) }), r.x + r.w / 2, r.y + 56, r.w - 16);
+      wx.fillText(t("Locked"), r.x + r.w / 2, r.y + 56, r.w - 16);
     }
     const prog = coverage(s.level);
-    if (open && openShare(s.level) < 1) {
+    if (open && !isFull(s.level)) {
       wx.fillStyle = "#fde68a"; wx.font = "bold 12px Segoe UI, system-ui";
-      wx.fillText(t("Half open"), r.x + r.w / 2, r.y + 56, r.w - 16);
+      wx.fillText(openLabel(s.level), r.x + r.w / 2, r.y + 56, r.w - 16);
     }
     wx.fillStyle = "#1e293b"; wx.fillRect(r.x + 10, r.road + 20, r.w - 20, 7);
     wx.fillStyle = "#34d399"; wx.fillRect(r.x + 10, r.road + 20, (r.w - 20) * prog, 7);
@@ -567,7 +566,7 @@
     return Object.assign({ sel: null, del: false, forces: false, fj: null, fr: null, test: null, guide: false, hint: 0, msg: "", msgClass: "",
                            subject: null, weekly: false }, extra);
   }
-  async function enterLevel(level, preview = false) {
+  async function enterLevel(level) {
     const info = LV[idxOf(level)], project = CAT.projects[info.project - 1];
     if (!designs[level]) {
       const d = new Design(CAT, project);
@@ -575,14 +574,14 @@
       for (const m of S.builds[level] || []) if (!d.taken(m[0], m[1])) d.members.push(m);
       designs[level] = d;
     }
-    cur = newCur({ level, info, project, design: designs[level], mat: project.materials[0], size: project.sizes[1] || project.sizes[0], preview });
-    $("toolbar").hidden = preview;
+    cur = newCur({ level, info, project, design: designs[level], mat: project.materials[0], size: project.sizes[1] || project.sizes[0] });
+    $("toolbar").hidden = false;
     $("card").hidden = false; $("chips").hidden = false; $("btn-bank").hidden = false;
     $("card").innerHTML = `<div class="q">${SYM ? "⏳" : esc(t("Loading {name} questions…", { name: lname(info) }))}</div>`;
     show("class");
     renderClassbar(); renderChips(); renderToolbar(); renderInfo();
-    if (preview) setMsg(previewLine(level));
-    track("level_start", { level, preview });
+    if (!isFull(level)) setMsg(openLine(level));
+    track("level_start", { level });
     cur.all = await loadLevel(level);
     setSubject(null);
   }
@@ -592,22 +591,17 @@
       $("cl-sub").textContent = `${t(cur.project.name)} · ${t(cur.project.vehicle.name)} ${(cur.project.vehicle.mass / 1000).toFixed(1)} t`;
       return;
     }
-    $("cl-name").textContent = (cur.preview ? "🔒 " : "") + classSym(cur.info);
+    $("cl-name").textContent = classSym(cur.info);
     $("cl-stars").textContent = starText(starsOf(cur.level));
-    if (cur.preview) { $("cl-sub").textContent = SYM ? `🔓 ${previewState(cur.level).left}` : previewLine(cur.level); return; }
-    const share = openShare(cur.level);
+    const o = openOf(cur.level), part = o.full ? "" : o.half ? "½ · " : `🔓 ${o.count}/${cur.info.n.toLocaleString("en-IN")} · `;
     if (SYM) {                                 // covered % of the bank and the bridge quiz, as numbers
-      $("cl-sub").textContent = `${share < 1 ? "½ · " : ""}📊 ${pct(coverage(cur.level))}% · 🌉 ${S.bridgeCorrect[cur.level] || 0}/${BRIDGE_STAR_GOAL}`;
+      $("cl-sub").textContent = `${part}📊 ${pct(coverage(cur.level))}% · 🌉 ${S.bridgeCorrect[cur.level] || 0}/${BRIDGE_STAR_GOAL}`;
       return;
     }
-    $("cl-sub").textContent = (share < 1 ? `${t("Half open")} · ` : "") +
+    $("cl-sub").textContent = (o.full ? "" : `${openLabel(cur.level)} · `) +
       `${t("Project {n}", { n: cur.project.id })}: ${t(cur.project.name)} · ` +
       t("covered {c}% of {n} questions · bridge quiz {b}/{q}", { c: pct(coverage(cur.level)), n: cur.info.n.toLocaleString("en-IN"),
                                                                  b: S.bridgeCorrect[cur.level] || 0, q: BRIDGE_STAR_GOAL });
-  }
-  function previewLine(level) {
-    return t("Preview: {n} free questions left. Answer {h}% of {b} right to open half of this class (now {c}%).",
-      { n: previewState(level).left, h: pct(HALF_AT), b: lname(prevClass(level)), c: pct(coverage(prevClass(level).l)) });
   }
   function renderChips() {
     const c = $("chips"); c.innerHTML = "";
@@ -657,8 +651,7 @@
   }
   function setSubject(s) {
     cur.subject = s;
-    const share = cur.preview ? 1 : openShare(cur.level);
-    cur.pool = cur.all.filter(q => (s === null || q.s === s) && (share >= 1 || q.i % 2 === 0));
+    cur.pool = (UNLOCK_ALL ? cur.all : U.pool(cur.all, openOf(cur.level))).filter(q => s === null || q.s === s);   // open questions only
     // questions not yet answered right come first, so the bank really gets covered
     cur.deck = spread(cur.pool.filter(q => !isDone(cur.level, q.i))).concat(spread(cur.pool.filter(q => isDone(cur.level, q.i))));
     cur.qi = 0; cur.answered = false;
@@ -703,9 +696,7 @@
   }
   function answer(k) {
     if (!cur || cur.weekly || cur.answered || !cur.deck || !cur.deck.length) return;
-    if (cur.preview && previewState(cur.level).left <= 0) return;
-    const sharesBefore = LV.map(l => openShare(l.l));
-    if (cur.preview) usePreview(cur.level);
+    const openBefore = LV.map(l => openOf(l.l));
     const q = cur.prereqCard || cur.deck[cur.qi % cur.deck.length], v = shown(q), btns = $("card").querySelectorAll(".opts button");
     cur.answered = true;
     btns.forEach((b, i) => { b.disabled = true; if (i === q.a) b.classList.add("right"); });
@@ -727,22 +718,19 @@
     }
     $("exp").innerHTML = line + `<button class="primary" id="btn-next">${t("Next ▶")}</button>`;
     $("btn-next").onclick = nextQ;
-    announceOpenings(sharesBefore);
+    if (!UNLOCK_ALL) U.update(LV, S);          // right answers may open the next batch; saved below, never lowered
+    announceOpenings(openBefore);
     checkBadges(); save(); hud(); renderInfo(); renderClassbar();
   }
   function nextQ() {
     stopSpeech();
-    if (cur.preview && previewState(cur.level).left <= 0) {
-      lockedModal(cur.level, previewState(cur.level).wait, lname(prevClass(cur.level)));
-      return;
-    }
     if (cur.prereqCard) { cur.prereqCard = null; renderCard(); return; } if (cur.needPrereqSubj != null && window.SetuShilpaExt) { const subj = cur.needPrereqSubj; cur.needPrereqSubj = null; window.SetuShilpaExt.fetchPrereqWarmup(subj).then(warm => { if (warm) { cur.prereqCard = warm; } else { cur.qi++; } renderCard(); }); return; } cur.qi++; renderCard();
   }
   function announceOpenings(before) {
     LV.forEach((l, k) => {
-      const now = openShare(l.l);
-      if (now <= before[k]) return;
-      toast(`🔓 ${esc(t(now >= 1 ? "{a} is now fully open!" : "{a} is now half open!", { a: lname(l) }))}`, 3000);
+      const now = openOf(l.l), was = before[k];
+      if (now.full === was.full && now.count <= was.count) return;
+      toast(`🔓 ${esc(now.full ? t("{a} is now fully open!", { a: lname(l) }) : t("{a}: {n} more questions open!", { a: lname(l), n: now.count - was.count }))}`, 3000);
       setTimeout(sfx.unlock, 300); buildMinimap();
     });
   }
@@ -882,7 +870,6 @@
 
   function renderToolbar() {
     const tb = $("toolbar"), p = cur.project; tb.innerHTML = "";
-    if (cur.preview) return;
     const add = (label, fn, on, cls) => {
       const b = document.createElement("button");
       b.textContent = SYM ? (sym(label, label) || label) : label; if (SYM) b.title = label;
@@ -937,7 +924,7 @@
 
   bc.addEventListener("contextmenu", e => e.preventDefault());
   bc.addEventListener("pointerdown", e => {
-    if (!cur || busy() || cur.preview) return;
+    if (!cur || busy()) return;
     const r = bc.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
     if (cur.forces) { const j = jointAt(mx, my); if (j !== null) forcesAt(j); return; }
     if (e.button === 2 || cur.del) {
@@ -1002,8 +989,8 @@
       sfx.pass(); track("level_complete", { level: lvl, stars: st });
       setMsg(t("Bridge passed! The {v} crossed. Highest load {n}% of breaking.", { v: t(p.vehicle.name), n: worstPct }), "good");
       const nextLv = LV[idxOf(lvl) + 1];
-      const toOpen = nextLv && openShare(nextLv.l) < 1
-        ? t("Answer questions here: at {h}% the next class opens halfway, at 100% fully. Now {c}%.", { h: pct(HALF_AT), c: pct(coverage(lvl)) }) : "";
+      const toOpen = nextLv && !isFull(nextLv.l)
+        ? t("Answer questions here: every 10 right open 10 more questions of the next class, 100 open it fully. Now {c} right.", { c: Math.min(U.FULL_AT, S.doneN[lvl] || 0) }) : "";
       modal(t("🎉 Bridge passed!"), `<p style="font-size:30px;text-align:center;margin:4px" class="stars">${starText(st)}</p>
         <p>${t("The {v} crossed safely. The most loaded member reached <b>{n}%</b> of its limit.", { v: esc(t(p.vehicle.name)), n: worstPct })}</p>
         <ul><li>★ ${t("Bridge holds")}</li><li>${used <= p.par_parts ? "★" : "☆"} ${t("Built within par: {u} / {p} parts", { u: used, p: p.par_parts })}</li>
@@ -1225,23 +1212,20 @@
   function openProfile() {
     const done = nDone(S), stars = LV.reduce((a, l) => a + starsOf(l.l), 0);
     const badges = BADGES.map(([k, ic, name]) => `<div class="badge ${hasBadge(k) ? "got" : ""}" title="${esc(t(name))}"><span class="ic">${hasBadge(k) ? ic : "🔒"}</span>${SYM ? "" : esc(t(name))}</div>`).join("");
-    const startSel = LV.map((l, k) => `<option value="${k}" ${k === S.start ? "selected" : ""}>${esc(classSym(l))}</option>`).join("");
+    const startName = S.start >= 0 ? esc(SYM ? classSym(LV[S.start]) : lname(LV[S.start])) : "-";   // chosen once, not changed here
     if (SYM) {
       const x = [[LV.length || 99, "Expert Engineer"], [7, "Chief Engineer"], [5, "Site Engineer"], [1, "Junior Engineer"]].find(([n]) => nDone(S) >= n);
       modal(`🏅 ${RANK_ICON[x ? x[1] : "Trainee"]}`,
         `<p style="font-size:1.15em">🌉 ${done}/${LV.length} · ⭐ ${stars}/${LV.length * 3} · ✔ ${totalCorrect(S).toLocaleString("en-IN")} · 🏆 ${S.best} · 🔥 ${S.streak}</p>` +
-        `<div class="badges">${badges}</div><p style="margin-top:14px">🏫 <select id="pf-start" style="font:inherit;padding:6px;border-radius:6px">${startSel}</select></p>`,
+        `<div class="badges">${badges}</div><p style="margin-top:14px" id="pf-start">🏫 ${startName}</p>`,
         [["📄", openReport], ["✔", closeModal]]);
-      $("pf-start").onchange = e => { S.start = +e.target.value; save(); buildMinimap(); toast("🏫 ✔"); };
       return;
     }
     modal(`🏅 ${esc(title())}`, `<p>${esc(t("{a} of 9 bridges built · {b} of 27 stars · {c} right answers · best score {d} · 🔥 {e}-day streak",
         { a: done, b: stars, c: totalCorrect(S).toLocaleString("en-IN"), d: S.best, e: S.streak }))}</p><div class="badges">${badges}</div>
-      <p style="margin-top:14px">${t("My class:")} <select id="pf-start" style="font:inherit;padding:6px;border-radius:6px">${startSel}</select>
-      <small> ${t("- buildings up to your class are open.")}</small></p>
-      <p><small>${esc(t("Answer {a}% of a class's questions right and the next class opens halfway; 100% opens it fully. Locked buildings let you try {n} questions every {h} hours.",
-        { a: pct(HALF_AT), n: PREVIEW_QS, h: PREVIEW_HOURS }))}</small></p>`, [[t("📄 Report card"), openReport], [t("Done"), closeModal]]);
-    $("pf-start").onchange = e => { S.start = +e.target.value; save(); buildMinimap(); toast(t("Class saved")); };
+      <p style="margin-top:14px" id="pf-start">${t("My class:")} <b>${startName}</b></p>
+      <p><small>${esc(t("Every class above yours shows 10 questions. Every 10 right answers in the class before it open 10 more; 100 right open it fully."))}</small></p>`,
+      [[t("📄 Report card"), openReport], [t("Done"), closeModal]]);
   }
 
   // ---------------- report card (for teachers and parents) ----------------
@@ -1291,7 +1275,7 @@
     if (["1", "2", "3", "4"].includes(e.key)) answer(+e.key - 1);
     else if (e.key === " " || e.key === "Enter") { if (!cur.weekly) { e.preventDefault(); nextQ(); } }
     else if (e.key === "q" || e.key === "Q") openBank();
-    else if ((e.key === "t" || e.key === "T") && !cur.preview) startTest();
+    else if ((e.key === "t" || e.key === "T")) startTest();
     else if (e.key === "u" || e.key === "U") undo();
     else if (e.key === "Escape") { if (cur.sel !== null) cur.sel = null; else { save(); show("world"); } }
   });
@@ -1321,6 +1305,8 @@
     S = load();
     const [lv, cat] = await Promise.all([fetch("data/levels.json").then(r => r.json()), fetch("data/projects.json").then(r => r.json())]);
     LV = lv.levels; NAMES = lv.subject_names; CAT = cat;
+    // one time: players from before the new unlock rules keep exactly what they had open (saved at once)
+    if (!UNLOCK_ALL && (U.migrate(LV, S, hadSave) || U.update(LV, S))) save();
     fetch("data/books.json").then(r => r.json()).then(j => { BOOKS = j; }).catch(() => {});
     world.layout();
     $("loading").remove(); $("app").hidden = false;

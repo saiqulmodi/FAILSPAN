@@ -1,5 +1,5 @@
 /* sw.js — Offline-first PWA service worker for SETU-SHILPA (FAILSPAN) */
-const CACHE = "setu-shilpa-v3";
+const CACHE = "setu-shilpa-v4";
 const CORE_ASSETS = [
   "./",
   "./index.html",
@@ -7,6 +7,7 @@ const CORE_ASSETS = [
   "./js/ncert-hub-client.js",
   "./js/truss.js",
   "./js/i18n.js",
+  "./js/unlock.js",
   "./js/intro.js",
   "./js/view3d.js",
   "./js/game.js",

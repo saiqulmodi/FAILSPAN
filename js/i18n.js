@@ -109,6 +109,15 @@
       "একটি শ্রেণি শেষ করো (সেতু + {g}টি ঠিক উত্তর), তাহলে পরেরটি খুলবে। বন্ধ ভবনে প্রতি {h} ঘণ্টায় {n}টি প্রশ্ন চেষ্টা করা যায়।",
     // ---- the 50% opening rule ----
     "or answer {h}% of {b}'s questions right to open half of this class (now {c}%).": "অথবা এই শ্রেণির অর্ধেক খুলতে {b}-এর {h}% প্রশ্নের ঠিক উত্তর দাও (এখন {c}%)।",
+    // ---- unlock rules (28-Nov-2026): starting class, 10-question demo, 10 more per 10 right ----
+    "Start at {a}? {a} opens fully. Each class above it opens 10 questions at a time as you answer right.": "{a} থেকে শুরু করবে? {a} পুরো খুলে যাবে। এর উপরের প্রতিটি শ্রেণিতে ঠিক উত্তর দিলে একবারে 10টি করে প্রশ্ন খুলবে।",
+    "Warning: the classes below {a} ({b}) will be locked and can never be opened later.": "সতর্কতা: {a}-এর নিচের শ্রেণিগুলো ({b}) বন্ধ হয়ে যাবে এবং পরে আর কখনও খোলা যাবে না।",
+    "Yes, start at {a}": "হ্যাঁ, {a} থেকে শুরু করো", "Choose again": "আবার বেছে নাও",
+    "{a} is locked for good: you started at {b}, so the classes below it stay closed.": "{a} চিরতরে বন্ধ: তুমি {b} থেকে শুরু করেছ, তাই এর নিচের শ্রেণিগুলো বন্ধই থাকবে।",
+    "{o} of {n} questions open. Every 10 right answers in {b} open 10 more here; 100 open all of it (now {c} right).": "{n}টি প্রশ্নের মধ্যে {o}টি খোলা। {b}-এ প্রতি 10টি ঠিক উত্তরে এখানে আরও 10টি খোলে; 100টিতে পুরোটা খুলে যায় (এখন {c}টি ঠিক)।",
+    "{o} of {n} open": "{n}টির মধ্যে {o}টি খোলা", "Half": "অর্ধেক", "{a}: {n} more questions open!": "{a}: আরও {n}টি প্রশ্ন খুলল!",
+    "Answer questions here: every 10 right open 10 more questions of the next class, 100 open it fully. Now {c} right.": "এখানে প্রশ্নের উত্তর দাও: প্রতি 10টি ঠিক উত্তরে পরের শ্রেণির আরও 10টি প্রশ্ন খোলে, 100টিতে পুরোটা খোলে। এখন {c}টি ঠিক।",
+    "Every class above yours shows 10 questions. Every 10 right answers in the class before it open 10 more; 100 right open it fully.": "তোমার শ্রেণির উপরের প্রতিটি শ্রেণিতে 10টি প্রশ্ন খোলা থাকে। তার আগের শ্রেণিতে প্রতি 10টি ঠিক উত্তরে আরও 10টি খোলে; 100টি ঠিক হলে পুরোটা খুলে যায়।",
     "Half open": "অর্ধেক খোলা", "{a} is now half open!": "{a} এখন অর্ধেক খোলা!", "{a} is now fully open!": "{a} এখন পুরো খোলা!",
     "covered {c}% of {n} questions · bridge quiz {b}/{q}": "{n}টি প্রশ্নের {c}% শেষ · সেতু কুইজ {b}/{q}",
     "Preview: {n} free questions left. Answer {h}% of {b} right to open half of this class (now {c}%).":
