@@ -2,6 +2,13 @@
 
     python tools/export_bank.py
 
+!! WARNING (28-Nov-2026): a re-export does NOT reproduce today's bank. The upstream banks have changed since, and the
+!! shipped bank was cleaned in commit 76b4714 by a separate script (at most 2 similar questions, never two with the
+!! same numbers, removed ones in data/archive/). Re-running this would ship other questions and can shift row numbers,
+!! which breaks every player's saved progress (one bit per row number). Do not run it without first checking that
+!! every class keeps its row count and row numbers. After writing, it runs tools/check_bank.py and fails loudly if
+!! the bank rules are broken.
+
 Same pattern as BridgeWorks (tools/export_web.py there):
 - a question lives in one class only (the lowest class it appears in);
 - at most CAP questions of one "kind" (same text, other numbers) per class and subject, and no more than
@@ -228,5 +235,16 @@ def ship(lv):
     print("questions shipped:", total, "in", len(out), "levels")
 
 
+def guard():
+    """Runs the bank checker on what was just written; a broken rule stops with a loud warning and exit code 1."""
+    import subprocess
+    r = subprocess.run([sys.executable, os.path.join(HERE, "tools", "check_bank.py"), "--root", HERE])
+    if r.returncode:
+        print("\n" + "!" * 78 + "\n!! THE EXPORTED BANK BREAKS THE BANK RULES (see above). data/ was written anyway:\n"
+              "!! do NOT commit or ship it. Restore it with: git checkout -- data tools/source\n" + "!" * 78)
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     main()
+    guard()
