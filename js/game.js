@@ -680,13 +680,13 @@
   }
   function renderCard() {
     if (!cur || cur.weekly || !cur.deck) return;
-    const c = $("card"), q = cur.prereqCard || cur.deck[cur.qi % Math.max(1, cur.deck.length)];
+    const c = $("card"), q = cur.deck[cur.qi % Math.max(1, cur.deck.length)];
     if (!q) { c.innerHTML = `<div class="q">${t("No questions here yet.")}</div>`; return; }
     const v = shown(q);
     const done = S.dailyDate === today() ? Math.min(DAILY_GOAL, S.dailyCount) : 0;
     const daily = SYM ? (done >= DAILY_GOAL ? "📅 ✓" : `📅 ${done}/${DAILY_GOAL}`)
       : done >= DAILY_GOAL ? t("Daily challenge done ✓") : t("Daily challenge: {a}/{b} right today", { a: done, b: DAILY_GOAL });
-    const note = (q.isPrereq ? ` <small style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-weight:600">💡 Foundation Warm-up (Class 8–9)</small>` : "") + (getLang() === "bn" && !q.bn ? ` <small>${SYM ? "EN" : t("(English only)")}</small>` : "");
+    const note = getLang() === "bn" && !q.bn ? ` <small>${SYM ? "EN" : t("(English only)")}</small>` : "";
     const auto = readsAloud() ? `<label><input type="checkbox" id="c-auto" ${S.autoRead ? "checked" : ""}> ${SYM ? "🔁" : t("Auto-read")}</label>` : "";
     const headTxt = SYM ? `${SUBJ_ICON[q.s] || esc(sname(q.s))} · ✔ +${cur.project.parts_per_correct} 🔩`
       : `${esc(lname(cur.info))} · ${esc(sname(q.s))} · ${t("right = +{n} parts", { n: cur.project.parts_per_correct })}`;
@@ -709,7 +709,7 @@
   function answer(k) {
     if (!cur || cur.weekly || cur.answered || !cur.deck || !cur.deck.length) return;
     const openBefore = LV.map(l => openOf(l.l));
-    const q = cur.prereqCard || cur.deck[cur.qi % cur.deck.length], v = shown(q), btns = $("card").querySelectorAll(".opts button");
+    const q = cur.deck[cur.qi % cur.deck.length], v = shown(q), btns = $("card").querySelectorAll(".opts button");
     cur.answered = true;
     btns.forEach((b, i) => { b.disabled = true; if (i === q.a) b.classList.add("right"); });
     S.answered++;
@@ -718,14 +718,14 @@
       S.score += CORRECT_PTS; S.treasury += CORRECT_CASH; S.best = Math.max(S.best, S.score);
       cur.design.parts += cur.project.parts_per_correct;
       S.correct[cur.level] = (S.correct[cur.level] || 0) + 1;
-      if (!q.isPrereq) markDone(cur.level, q.i); if (window.SetuShilpaExt) window.SetuShilpaExt.resetMiss();
+      markDone(cur.level, q.i);
       if (q.s === "bridge") S.bridgeCorrect[cur.level] = (S.bridgeCorrect[cur.level] || 0) + 1;
       dailyTick(); sfx.right();
       line = `<span>${t("✓ Right! +{n} parts.", { n: cur.project.parts_per_correct })} ${esc(v.e)}</span>`;
     } else {
       btns[k].classList.add("wrong");
       S.score = Math.max(0, S.score - WRONG_PTS); S.treasury = Math.max(0, S.treasury - WRONG_CASH);
-      sfx.wrong(); if (window.SetuShilpaExt && !q.isPrereq && cur.level >= 11 && window.SetuShilpaExt.trackMiss() >= 2) { window.SetuShilpaExt.resetMiss(); cur.needPrereqSubj = q.s; }
+      sfx.wrong();
       line = `<span>${esc(t("✗ Answer: {a}.", { a: v.o[q.a] }))} ${esc(v.e)}</span>`;
     }
     $("exp").innerHTML = line + `<button class="primary" id="btn-next">${t("Next ▶")}</button>`;
@@ -736,7 +736,7 @@
   }
   function nextQ() {
     stopSpeech();
-    if (cur.prereqCard) { cur.prereqCard = null; renderCard(); return; } if (cur.needPrereqSubj != null && window.SetuShilpaExt) { const subj = cur.needPrereqSubj; cur.needPrereqSubj = null; window.SetuShilpaExt.fetchPrereqWarmup(subj).then(warm => { if (warm) { cur.prereqCard = warm; } else { cur.qi++; } renderCard(); }); return; } cur.qi++; renderCard();
+    cur.qi++; renderCard();
   }
   function announceOpenings(before) {
     LV.forEach((l, k) => {
