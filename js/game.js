@@ -18,7 +18,19 @@
   function offerReward(onDone, kind) { try { var S = window.Stratos || parent.Stratos; if (S && S.coins && S.coins.offer) { S.coins.offer(kind || 'hint', onDone); return; } } catch (e) {} onDone(); }
 
   const CORRECT_CASH = 10000, CORRECT_PTS = 4, WRONG_CASH = 1000, WRONG_PTS = 1, SUBSIDY_PER_POINT = 2500;
-  const U = window.BWUnlock;                 // which questions are open (js/unlock.js, owner rules 28-Nov-2026)
+  // which questions are open (js/unlock.js, owner rules 28-Nov-2026). game.js loads it itself before booting, so
+  // an older index.html without the script tag still works; with the tag it is already there and is not loaded again.
+  let U = window.BWUnlock || null;
+  function loadUnlock() {
+    if (window.BWUnlock) return Promise.resolve(window.BWUnlock);
+    return new Promise((ok, fail) => {
+      const el = document.createElement("script");
+      el.src = "js/unlock.js";
+      el.onload = () => window.BWUnlock ? ok(window.BWUnlock) : fail(new Error("js/unlock.js loaded without BWUnlock"));
+      el.onerror = () => fail(new Error("js/unlock.js could not be loaded"));
+      document.head.appendChild(el);
+    });
+  }
   const DAILY_GOAL = 5, DAILY_BONUS_PARTS = 10, BRIDGE_STAR_GOAL = 10, TEST_SECONDS = 5;
   const SHORT = { 15: "BE", 13: "NIT", 14: "IIT", 16: "EXP" };
   const ZONE = ["#14532d", "#1e3a5f", "#3b1f5c", "#5c3a1a", "#5c1a2a"];
@@ -1303,7 +1315,8 @@
 
   async function boot() {
     S = load();
-    const [lv, cat] = await Promise.all([fetch("data/levels.json").then(r => r.json()), fetch("data/projects.json").then(r => r.json())]);
+    const [lv, cat, unlock] = await Promise.all([fetch("data/levels.json").then(r => r.json()), fetch("data/projects.json").then(r => r.json()), loadUnlock()]);
+    U = unlock;
     LV = lv.levels; NAMES = lv.subject_names; CAT = cat;
     // one time: players from before the new unlock rules keep exactly what they had open (saved at once)
     if (!UNLOCK_ALL && (U.migrate(LV, S, hadSave) || U.update(LV, S))) save();
@@ -1326,6 +1339,10 @@
     });
     if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
   }
-  boot().catch(e => { $("loading").textContent = "Could not load the game data. Please reload."; console.error(e); });
+  boot().catch(e => {
+    $("loading").innerHTML = "Could not load the game. Please check your internet connection and reload.<br>" +
+      "গেম লোড করা যায়নি। ইন্টারনেট সংযোগ দেখে আবার লোড করো।<br><button onclick=\"location.reload()\">⟳</button>";
+    console.error(e);
+  });
 })();
 
