@@ -152,7 +152,15 @@
       </div>
       <button id="nhRotateBtn" type="button" style="background:#1e293b;color:#fde68a;border:1px solid #475569;border-radius:6px;padding:4px 8px;cursor:pointer;font-weight:600">🔄 Q1 (90d)</button>
     `;
-    document.body.appendChild(bar);
+    // FAILSPAN: sit in the road screen's layout (under the class buttons) instead of floating over the game,
+    // so it never covers the intro's Skip, the quiz answers, the bridge screen or the class buttons.
+    const host = document.getElementById("screen-world");
+    if (host) {
+      bar.style.position = "static"; bar.style.zIndex = ""; bar.style.boxShadow = "none";
+      bar.style.borderRadius = "0"; bar.style.borderWidth = "1px 0 0"; bar.style.justifyContent = "center";
+      bar.style.flex = "0 0 auto";
+      host.appendChild(bar);
+    } else document.body.appendChild(bar);
 
     bar.querySelector("#nhSprintBtn").onclick = (e) => toggleSprint(e.currentTarget);
     bar.querySelector("#nhMissedBtn").onclick = () => {
