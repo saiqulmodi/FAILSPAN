@@ -1,5 +1,5 @@
 /* sw.js — Offline-first PWA service worker for SETU-SHILPA (FAILSPAN) */
-const CACHE = "setu-shilpa-v7";
+const CACHE = "setu-shilpa-v8";
 const CORE_ASSETS = [
   "./",
   "./index.html",

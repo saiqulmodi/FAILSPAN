@@ -86,11 +86,95 @@
     try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === "object") { hadSave = true; return migrate(Object.assign(fresh(), s)); } } catch (e) {}
     return Object.assign(fresh(), { v8: 1 });
   }
-  function save() {
-    if (UNLOCK_ALL) return;
+  // Two tabs (or the installed app and a browser tab) each hold their own copy of the save. Before writing, the
+  // stored copy is merged in, so one tab never lowers what another saved (owner, 28-Nov-2026). mine = this tab's
+  // save (changed in place), stored = the save in localStorage, base = the stored save as this tab last read or
+  // wrote it (for "stored + this tab's change"), own = the class or weekly key this tab is editing (or null).
+  function mergeSave(mine, stored, base, own) {
+    base = base || stored;
+    const num = v => +v || 0, obj = v => (v && typeof v === "object") ? v : {};
+    const keys = (a, b) => [...new Set(Object.keys(obj(a)).concat(Object.keys(obj(b))))];
+    const higher = (a, b) => { const o = {}; for (const k of keys(a, b)) o[k] = Math.max(num(obj(a)[k]), num(obj(b)[k])); return o; };
+    const plusChange = (s, m, b) => Math.max(0, num(s) + num(m) - num(b));        // stored + what this tab added or spent
+    const low = (a, b) => a == null ? (b == null ? null : b) : b == null ? a : Math.min(a, b);
+    const lower = (a, b) => { const o = {}; for (const k of keys(a, b)) o[k] = low(obj(a)[k], obj(b)[k]); return o; };
+    const bytes = s => { try { return Uint8Array.from(atob(s || ""), c => c.charCodeAt(0)); } catch (e) { return new Uint8Array(0); } };
+    // starting class: the first pick wins; a tab that picked later takes the stored pick and its open classes
+    const sameStart = !(stored.start >= 0) || stored.start === mine.start;
+    if (!sameStart) { mine.start = stored.start; mine.unlock = JSON.parse(JSON.stringify(stored.unlock || null)); }
+    // score and treasury: stored + this tab's change; best = the higher
+    mine.score = plusChange(stored.score, mine.score, base.score);
+    mine.treasury = plusChange(stored.treasury, mine.treasury, base.treasury);
+    mine.best = Math.max(num(stored.best), num(mine.best), mine.score);
+    // counts that only go up: the higher value
+    mine.answered = Math.max(num(stored.answered), num(mine.answered));
+    mine.vehicles = Math.max(num(stored.vehicles), num(mine.vehicles));
+    mine.correct = higher(stored.correct, mine.correct);
+    mine.bridgeCorrect = higher(stored.bridgeCorrect, mine.bridgeCorrect);
+    // questions answered right: bitwise OR of the bitmaps; doneN the higher of both and of the merged bit count
+    const done = {}, doneN = higher(stored.doneN, mine.doneN);
+    for (const k of keys(stored.done, mine.done)) {
+      const a = bytes(obj(stored.done)[k]), b = bytes(obj(mine.done)[k]), o = new Uint8Array(Math.max(a.length, b.length));
+      let n = 0;
+      for (let i = 0; i < o.length; i++) { o[i] = (a[i] || 0) | (b[i] || 0); for (let x = o[i]; x; x &= x - 1) n++; }
+      done[k] = btoa(String.fromCharCode.apply(null, o)); doneN[k] = Math.max(doneN[k] || 0, n);
+    }
+    mine.done = done; mine.doneN = doneN;
+    // badges and completed bridges: the union (a badge keeps its earlier date)
+    mine.complete = Object.assign({}, obj(stored.complete), obj(mine.complete));
+    const badges = Object.assign({}, obj(stored.badges));
+    for (const [k, v] of Object.entries(obj(mine.badges)))
+      if (!(k in badges) || (typeof v === "string" && typeof badges[k] === "string" && v < badges[k])) badges[k] = v;
+    mine.badges = badges;
+    // fewer parts is better: the lower value
+    mine.bestParts = lower(stored.bestParts, mine.bestParts);
+    const sw = obj(stored.weekly), mw = obj(mine.weekly), hist = lower(stored.weeklyHist, mine.weeklyHist);
+    const file = w => { if (w.best != null && num(w.week) >= 0) hist[w.week] = low(hist[w.week], w.best); };
+    if (num(sw.week) > num(mw.week)) { file(mw); mine.weekly = JSON.parse(JSON.stringify(sw)); }
+    else if (num(sw.week) < num(mw.week)) file(sw);
+    else mine.weekly = { week: mw.week, best: low(sw.best, mw.best), build: own === "weekly" + mw.week ? mw.build : (sw.build || mw.build || []) };
+    mine.weeklyHist = hist;
+    // builds and parts: this tab's own class only (parts: stored + this tab's change), every other class as stored
+    const ownBuild = obj(mine.builds)[own], ownParts = obj(mine.parts)[own];
+    mine.builds = Object.assign({}, obj(mine.builds), obj(stored.builds));
+    mine.parts = Object.assign({}, obj(mine.parts), obj(stored.parts));
+    if (own != null && !String(own).startsWith("weekly")) {
+      if (ownBuild !== undefined) mine.builds[own] = ownBuild;
+      if (ownParts !== undefined) mine.parts[own] = plusChange(obj(stored.parts)[own], ownParts, obj(base.parts)[own]);
+    }
+    // daily challenge: the later date wins; the same date keeps the higher count
+    if (String(stored.dailyDate || "") > String(mine.dailyDate || "")) { mine.dailyDate = stored.dailyDate; mine.dailyCount = stored.dailyCount; }
+    else if (stored.dailyDate === mine.dailyDate) mine.dailyCount = Math.max(num(stored.dailyCount), num(mine.dailyCount));
+    if (String(stored.lastDaily || "") > String(mine.lastDaily || "")) { mine.lastDaily = stored.lastDaily; mine.streak = stored.streak; }
+    else if (stored.lastDaily === mine.lastDaily) mine.streak = Math.max(num(stored.streak), num(mine.streak));
+    // what is open: union of fully and half open classes, the higher open count (the rules then run on the merge)
+    if (sameStart && stored.unlock) {
+      const su = stored.unlock, mu = obj(mine.unlock);
+      mine.unlock = Object.assign({}, su, mu, { full: Object.assign({}, su.full, mu.full), half: Object.assign({}, su.half, mu.half), open: higher(su.open, mu.open) });
+    }
+    return mine;   // settings (muted, lang, autoRead, view3d, lowGfx) stay this tab's
+  }
+  let base = null;                     // the stored save as this tab last read or wrote it
+  function readStored() {
+    try { const s = JSON.parse(localStorage.getItem(KEY)); return s && typeof s === "object" ? migrate(Object.assign(fresh(), s)) : null; } catch (e) { return null; }
+  }
+  // takes the stored save in; returns true when this tab's starting class changed (another tab picked first)
+  function syncFrom(stored) {
+    const start = S.start;
     if (cur && !cur.weekly) { S.builds[cur.level] = cur.design.members; S.parts[cur.level] = cur.design.parts; }
     if (cur && cur.weekly) S.weekly.build = cur.design.members;
-    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+    if (!stored) return false;
+    mergeSave(S, stored, base, cur ? cur.level : null);
+    if (LV.length) U.update(LV, S);
+    if (cur && !cur.weekly) cur.design.parts = S.parts[cur.level];
+    for (const k in DONE) delete DONE[k];                                   // re-read from the merged bitmaps
+    for (const k in designs) if (!cur || k !== String(cur.level)) delete designs[k];   // rebuilt from the merged save
+    return S.start !== start;
+  }
+  function save() {
+    if (UNLOCK_ALL) return;
+    syncFrom(readStored());
+    try { localStorage.setItem(KEY, JSON.stringify(S)); base = JSON.parse(JSON.stringify(S)); } catch (e) {}
   }
 
   // ---------------- sound: short synth effects for actions only ----------------
@@ -1314,7 +1398,7 @@
   }
 
   async function boot() {
-    S = load();
+    S = load(); base = JSON.parse(JSON.stringify(S));
     const [lv, cat, unlock] = await Promise.all([fetch("data/levels.json").then(r => r.json()), fetch("data/projects.json").then(r => r.json()), loadUnlock()]);
     U = unlock;
     LV = lv.levels; NAMES = lv.subject_names; CAT = cat;
@@ -1322,6 +1406,17 @@
     if (!UNLOCK_ALL && (U.migrate(LV, S, hadSave) || U.update(LV, S))) save();
     fetch("data/books.json").then(r => r.json()).then(j => { BOOKS = j; }).catch(() => {});
     world.layout();
+    // another tab saved: take its progress in now, keeping this tab's question and screen as they are
+    window.addEventListener("storage", e => {
+      if (e.key !== KEY || UNLOCK_ALL || !e.newValue) return;
+      const stored = readStored(); if (!stored) return;
+      const startChanged = syncFrom(stored);
+      base = JSON.parse(JSON.stringify(stored));
+      if (startChanged && $("screen-start").classList.contains("show")) { closeModal(); world.focus(LV[S.start].l); show("world"); }
+      hud();
+      if (view === "world") buildMinimap();
+      if (view === "class" && cur) { renderClassbar(); renderInfo(); }
+    });
     $("loading").remove(); $("app").hidden = false;
     applyLang();
     document.body.classList.toggle("mode3d", !!S.view3d);
