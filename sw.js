@@ -4,7 +4,6 @@ const CORE_ASSETS = [
   "./",
   "./index.html",
   "./game.json",
-  "./js/ncert-hub-client.js",
   "./js/truss.js",
   "./js/i18n.js",
   "./js/unlock.js",
