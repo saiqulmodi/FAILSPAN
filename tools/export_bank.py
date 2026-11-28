@@ -33,7 +33,7 @@ SHOWN = lambda level: level >= 8
 NO_SUBJECT = {"biology", "biology_x"}
 PROJECT = {8: 1, 9: 2, 10: 3, 11: 4, 12: 5}      # Classes 8-12 one bridge project each; NIT, IIT, BE, Expert the hardest
 CAP = 2                         # classes 1-10 and Expert, same as BridgeWorks
-CAP_HIGH = int(os.environ.get("CAP_HIGH", 4))
+CAP_HIGH = int(os.environ.get("CAP_HIGH", 2))   # owner rule (28-Nov-2026): at most 2 similar questions in the whole bank
 HIGH = {11, 12, 13, 14, 15}
 NEAR = 0.8
 _WORDS = re.compile(r"[^\W\d_]+")
